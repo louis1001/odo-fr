@@ -74,6 +74,10 @@ extension Odo {
                 let token = currentToken
                 try eat(tp: .Integer)
                 return .Integer(token)
+            case .String:
+                let token = currentToken
+                try eat(tp: .String)
+                return .String(token)
             default:
                 break
             }

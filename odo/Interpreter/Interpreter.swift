@@ -8,23 +8,26 @@
 extension Odo {
     public class Interpreter {
         let parser = Parser()
+        let semAn: SemanticAnalyzer
         public init() {
-            
+            semAn = SemanticAnalyzer()
         }
         
         func visit(node: Node) throws -> Value {
             switch node {
             case .TDouble(let value):
-                return .NDouble(Double(value.lexeme)!)
+                return DoubleValue(value: Double(value.lexeme)!)
             case .Integer(let value):
-                return .Int(Int(value.lexeme)!)
+                return IntValue(value: Int(value.lexeme)!)
+            case .String(let value):
+                return StringValue(value: value.lexeme)
             case .ArithmeticOp(let lhs, let op, let rhs):
                 return try aritmeticOp(lhs: lhs, op: op, rhs: rhs)
             case .NoOp:
                 break
             }
             
-            return .Null
+            return .null
         }
         
         func aritmeticOp(lhs: Node, op: Token, rhs: Node) throws -> Value {
@@ -36,39 +39,64 @@ extension Odo {
                 isDouble = true
             }
 
-            let lhs = try visit(node: lhs)
-            let rhs = try visit(node: rhs)
+            let leftVisited = try visit(node: lhs)
+            let rightVisited = try visit(node: rhs)
+            
+            if leftVisited.type == .stringType || rightVisited.type == .stringType {
+                return arithmeticWithStrings(lhs: leftVisited, op: op, rhs: rightVisited)
+            }
+            
+            let lhs = leftVisited as! PrimitiveValue
+            let rhs = rightVisited as! PrimitiveValue
             
             let result: Double
             
             switch op.type {
             case .Plus:
-                result = lhs.asNumeric()! + rhs.asNumeric()!
-                
+                result = lhs.asDouble()! + rhs.asDouble()!
             case .Minus:
-                result = lhs.asNumeric()! + rhs.asNumeric()!
+                result = lhs.asDouble()! + rhs.asDouble()!
             case .Mul:
-                result = lhs.asNumeric()! * rhs.asNumeric()!
+                result = lhs.asDouble()! * rhs.asDouble()!
             case .Div:
-                if rhs.asNumeric()! == 0 {
+                if rhs.asDouble()! == 0 {
                     throw OdoException.RuntimeError(message: "Attempted Division operation over zero.")
                 }
                 isDouble = true
-                result = lhs.asNumeric()! / rhs.asNumeric()!
+                result = lhs.asDouble()! / rhs.asDouble()!
             default:
-                throw OdoException.SyntaxError(message: "Internal: Invalid arithmetic operator: \(op.type).")
+                return .null
             }
 
             if isDouble {
-                return .NDouble(result)
+                return .primitive(result)
             } else {
-                return .Int(Int(result))
+                return .primitive(Int(result))
+            }
+        }
+        
+        func arithmeticWithStrings(lhs: Value, op: Token, rhs: Value) -> Value {
+            switch op.type {
+            case .Plus:
+                return StringValue(value: lhs.toString() + rhs.toString())
+            case .Mul:
+                var result = ""
+                let rightAsInt = (rhs as! IntValue).value
+                for _ in 0..<rightAsInt {
+                    result += lhs.toString()
+                }
+                return StringValue(value: result)
+            default:
+                fatalError("Invalid operation with strings. Ending program")
             }
         }
         
         public func interpret(code: String) throws -> Value {
             try parser.setText(to: code)
             let root = try parser.program()
+            
+            try semAn.analyze(root: root)
+            
             return try visit(node: root)
         }
     }

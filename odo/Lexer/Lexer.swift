@@ -45,6 +45,12 @@ extension Odo {
             currentPos = text.index(currentPos, offsetBy: 1)
         }
         
+        func isWhitespace() -> Bool {
+            guard let currentChar = currentChar else { return false }
+
+            return currentChar.isWhitespace && !currentChar.isNewline
+        }
+        
         func number() -> Token {
             var result = String(currentChar!)
             
@@ -66,7 +72,63 @@ extension Odo {
             }
         }
         
+        func escapeChar() -> Character {
+            let escapeMap: [Character: Character] = [
+                "\\": "\\",
+                "n" : "\n",
+                "r" : "\r",
+                "t" : "\t",
+//                "b" : "\b",
+//                "a" : "\a",
+//                "v" : "\v",
+                "\'": "\'",
+                "\"": "\"",
+//                "?" : "\?",
+            ]
+            
+            let toEscape = currentChar!
+            
+            if let escaped = escapeMap[toEscape] {
+                return escaped
+            } else {
+                return toEscape
+            }
+        }
+        
+        func string() throws -> Token {
+            let openning = currentChar!
+            var result = ""
+            
+            advance()
+            
+            while currentChar != openning {
+                if currentChar == nil {
+                    throw OdoException.SyntaxError(message: "String literal has no matching `\(openning)`.")
+                }
+
+                if currentChar == "\\" {
+                    advance()
+                    result.append(escapeChar())
+                } else {
+                    result.append(currentChar!)
+                }
+                
+                advance()
+            }
+            
+            advance()
+
+            return Token(type: .String, lexeme: result)
+        }
+        
+        func ignoreWhitespace() {
+            while isWhitespace() {
+                advance()
+            }
+        }
+        
         public func getNextToken() throws -> Token {
+            ignoreWhitespace()
             guard let char = currentChar else {
                 return Token(type: .EOF)
             }
@@ -86,6 +148,8 @@ extension Odo {
             case "/":
                 advance()
                 return Token(type: .Div)
+            case "\"", "'":
+                return try string()
             default:
                 throw OdoException.InputError(line: currentLine, pos: currentColumn, character: char)
             }

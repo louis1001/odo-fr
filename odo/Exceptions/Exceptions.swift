@@ -16,6 +16,7 @@ extension Odo {
         case RuntimeError(message: String)
         case ValueError(message: String)
         case OutOfRangeError(message: String)
+        case SemanticError(message: String)
         
         func name() -> String {
             let n = String(describing: self)
@@ -28,17 +29,13 @@ extension Odo {
             switch self {
             case .InputError(let line, let pos, let char):
                 result += "Invalid character `\(char)` at line \(line), column \(pos)"
-            case .SyntaxError(message: let message):
-                result += message
-            case .NameError(message: let message):
-                result += message
-            case .TypeError(message: let message):
-                result += message
-            case .RuntimeError(message: let message):
-                result += message
-            case .ValueError(message: let message):
-                result += message
-            case .OutOfRangeError(message: let message):
+            case .SyntaxError(let message),
+                 .NameError(let message),
+                 .TypeError(let message),
+                 .RuntimeError(let message),
+                 .ValueError(let message),
+                 .OutOfRangeError(let message),
+                 .SemanticError(let message):
                 result += message
             }
 

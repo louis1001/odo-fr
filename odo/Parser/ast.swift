@@ -10,6 +10,7 @@ extension Odo {
     indirect enum Node {
         case Integer(Token)
         case TDouble(Token)
+        case String(Token)
         case ArithmeticOp(Node, Token, Node)
         
         case NoOp

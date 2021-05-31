@@ -11,6 +11,7 @@ extension Odo {
         public enum Kind {
             case Integer
             case Double
+            case String
 
             case Plus
             case Minus

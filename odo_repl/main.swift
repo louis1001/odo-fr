@@ -15,7 +15,7 @@ while true {
     
     do {
         let result = try inter.interpret(code: val)
-        print(result)
+        print(result.toString())
     } catch let err as Odo.OdoException {
         print(err.description())
     }
