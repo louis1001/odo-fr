@@ -11,8 +11,11 @@ extension Odo {
             
         }
         
+        @discardableResult
         func visit(node: Node) throws -> NodeResult {
             switch node {
+            case .block(let body):
+                return try block(body: body)
             case .double(_):
                 return NodeResult(tp: .doubleType)
             case .int(_):
@@ -28,6 +31,14 @@ extension Odo {
             case .noOp:
                 return .nothing
             }
+        }
+        
+        func block(body: [Node]) throws -> NodeResult {
+            for statement in body {
+                try visit(node: statement)
+            }
+            
+            return .nothing
         }
         
         func arithmeticOp(lhs: Node, op: Token, rhs: Node) throws -> NodeResult {
@@ -105,7 +116,7 @@ extension Odo {
         }
         
         func analyze(root: Node) throws {
-            let _ = try visit(node: root)
+            try visit(node: root)
         }
     }
 }

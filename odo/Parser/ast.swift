@@ -16,6 +16,8 @@ extension Odo {
         case `true`
         case `false`
         
+        case block([Node])
+        
         case arithmeticOp(Node, Token, Node)
         case logicOp(Node, Token, Node)
         

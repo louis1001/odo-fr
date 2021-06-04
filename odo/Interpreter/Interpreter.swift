@@ -13,8 +13,11 @@ extension Odo {
             semAn = SemanticAnalyzer()
         }
         
+        @discardableResult
         func visit(node: Node) throws -> Value {
             switch node {
+            case .block(let body):
+                return try block(body: body)
             case .double(let value):
                 return DoubleValue(value: Double(value.lexeme)!)
             case .int(let value):
@@ -34,6 +37,15 @@ extension Odo {
             }
             
             return .null
+        }
+        
+        func block(body: [Node]) throws -> Value {
+            var result: Value = .null
+            for statement in body {
+                result = try visit(node: statement)
+            }
+            
+            return result
         }
         
         func aritmeticOp(lhs: Node, op: Token, rhs: Node) throws -> Value {

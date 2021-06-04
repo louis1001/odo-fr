@@ -30,6 +30,11 @@ extension Odo {
             // Sure. why not? FIXME
             case `true`
             case `false`
+            
+            // Punctuation
+            case semiColon
+            
+            case newLine
 
             case eof
         }

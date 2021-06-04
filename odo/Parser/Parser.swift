@@ -32,8 +32,55 @@ extension Odo {
             return result
         }
         
+        func statementTerminator() throws {
+            if currentToken.type == .semiColon {
+                try eat(tp: .semiColon)
+                while currentToken.type == .newLine {
+                    try eat(tp: .newLine)
+                }
+            } else if currentToken.type != .eof {
+                // if it's not any of the other terminators
+                try eat(tp: .newLine)
+                while currentToken.type == .newLine {
+                    try eat(tp: .newLine)
+                }
+            }
+        }
+        
+        func ignoreNl() throws {
+            while currentToken.type == .newLine {
+                try eat(tp: .newLine)
+            }
+        }
+        
         func block() throws -> Node {
-            let result = try or()
+            let result = try statementList()
+            
+            return .block(result)
+        }
+        
+        func statementList() throws -> [Node] {
+            var result: [Node] = []
+            
+            try ignoreNl()
+            
+            while currentToken.type != .eof {
+                result.append(try statement())
+            }
+            
+            return result
+        }
+        
+        func statement(withTerm: Bool = true) throws -> Node {
+            var result: Node = .noOp
+            switch currentToken.type {
+            default:
+                result = try or()
+            }
+            
+            if withTerm {
+                try statementTerminator()
+            }
             
             return result
         }

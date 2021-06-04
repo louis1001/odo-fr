@@ -163,6 +163,9 @@ extension Odo {
                 return number()
             case let x where x.isLetter || x == "_":
                 return identifier()
+            case let x where x.isNewline:
+                advance()
+                return Token(type: .newLine)
             case "+":
                 advance()
                 return Token(type: .plus)
@@ -177,6 +180,9 @@ extension Odo {
                 return Token(type: .div)
             case "\"", "'":
                 return try string()
+            case ";":
+                advance()
+                return Token(type: .semiColon)
             default:
                 throw OdoException.InputError(line: currentLine, pos: currentColumn, character: char)
             }

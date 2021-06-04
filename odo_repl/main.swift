@@ -13,6 +13,10 @@ while true {
     print("> ", terminator: "")
     let val = readLine()!
     
+    if val == "exit()" {
+        break
+    }
+    
     do {
         let result = try inter.interpret(code: val)
         print(result)
