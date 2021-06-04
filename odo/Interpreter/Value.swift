@@ -13,11 +13,7 @@ extension Odo {
         final var type: TypeSymbol!
         var isPrimitive: Bool { false }
 
-        static let null: PrimitiveValue = {
-            let val = PrimitiveValue()
-            val.type = .nullType
-            return val
-        }()
+        static let null: PrimitiveValue = NullValue()
         
         final class func primitive(_ value: Int) -> IntValue {
             return IntValue(value: value)
@@ -55,6 +51,17 @@ extension Odo {
         final var isBool   : Bool { self is BoolValue }
         
         func asDouble() -> Double? { return nil }
+    }
+    
+    fileprivate class NullValue : PrimitiveValue {
+        public override var description: String {
+            "null"
+        }
+        
+        override init() {
+            super.init()
+            type = .nullType
+        }
     }
     
     public class IntValue : PrimitiveValue {
