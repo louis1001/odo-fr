@@ -8,7 +8,7 @@
 import Foundation
 
 extension Odo {
-    public class Value: Identifiable {
+    public class Value: Identifiable, CustomStringConvertible {
         public let id = UUID()
         final var type: TypeSymbol!
         var isPrimitive: Bool { false }
@@ -35,8 +35,12 @@ extension Odo {
             return BoolValue(value: value)
         }
         
-        public func toString() -> String{
-            return "<value at:\(id)>"
+        public var description: String {
+            "<value at:\(id)>"
+        }
+
+        public func toString() -> String {
+            return description
         }
     }
     
@@ -68,8 +72,8 @@ extension Odo {
             type = .intType
         }
         
-        public override func toString() -> String {
-            return "\(value)"
+        public override var description: String {
+            "\(value)"
         }
     }
 
@@ -88,8 +92,8 @@ extension Odo {
             type = .doubleType
         }
         
-        public override func toString() -> String {
-            return "\(value)"
+        public override var description: String {
+            "\(value)"
         }
     }
     
@@ -104,8 +108,8 @@ extension Odo {
             type = .stringType
         }
         
-        public override func toString() -> String {
-            return "\(value)"
+        public override var description: String {
+            "\(value)"
         }
     }
     
@@ -120,8 +124,8 @@ extension Odo {
             type = .boolType
         }
         
-        public override func toString() -> String {
-            return "\(value)"
+        public override var description: String {
+            "\(value)"
         }
     }
 }
