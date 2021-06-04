@@ -8,22 +8,23 @@ import Foundation
 
 extension Odo {
     indirect enum Node {
-        case Integer(Token)
-        case TDouble(Token)
-        case String(Token)
+        case int(Token)
+        case double(Token)
+        case string(Token)
         
-        case True
-        case False
+        // FIXME: What should I use instead of the straight up keywords?
+        case `true`
+        case `false`
         
-        case ArithmeticOp(Node, Token, Node)
-        case LogicOp(Node, Token, Node)
+        case arithmeticOp(Node, Token, Node)
+        case logicOp(Node, Token, Node)
         
-        case NoOp
+        case noOp
         
         
         func isNumeric() -> Bool {
             switch self {
-            case .Integer, .TDouble:
+            case .int, .double:
                 return true
             default:
                 return false

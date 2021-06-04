@@ -22,7 +22,7 @@ while true {
 //    let lexer = Odo.Lexer(text: val ?? "")
 //    var currToken = try! lexer.getNextToken()
 //
-//    while currToken.type != .EOF {
+//    while currToken.type != .eof {
 //        print(currToken.toString())
 //        currToken = try! lexer.getNextToken()
 //    }

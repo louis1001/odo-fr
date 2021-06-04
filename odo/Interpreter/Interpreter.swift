@@ -15,21 +15,21 @@ extension Odo {
         
         func visit(node: Node) throws -> Value {
             switch node {
-            case .TDouble(let value):
+            case .double(let value):
                 return DoubleValue(value: Double(value.lexeme)!)
-            case .Integer(let value):
+            case .int(let value):
                 return IntValue(value: Int(value.lexeme)!)
-            case .String(let value):
+            case .string(let value):
                 return StringValue(value: value.lexeme)
-            case .True:
+            case .true:
                 return BoolValue(value: true)
-            case .False:
+            case .false:
                 return BoolValue(value: false)
-            case .ArithmeticOp(let lhs, let op, let rhs):
+            case .arithmeticOp(let lhs, let op, let rhs):
                 return try aritmeticOp(lhs: lhs, op: op, rhs: rhs)
-            case .LogicOp(let lhs, let op, let rhs):
+            case .logicOp(let lhs, let op, let rhs):
                 return try logicOp(lhs: lhs, op: op, rhs: rhs)
-            case .NoOp:
+            case .noOp:
                 break
             }
             
@@ -39,7 +39,7 @@ extension Odo {
         func aritmeticOp(lhs: Node, op: Token, rhs: Node) throws -> Value {
             var isDouble: Bool
             switch (lhs, rhs) {
-            case (.Integer, .Integer):
+            case (.int, .int):
                 isDouble = false
             default:
                 isDouble = true
@@ -58,13 +58,13 @@ extension Odo {
             let result: Double
             
             switch op.type {
-            case .Plus:
+            case .plus:
                 result = lhs.asDouble()! + rhs.asDouble()!
-            case .Minus:
+            case .minus:
                 result = lhs.asDouble()! + rhs.asDouble()!
-            case .Mul:
+            case .mul:
                 result = lhs.asDouble()! * rhs.asDouble()!
-            case .Div:
+            case .div:
                 if rhs.asDouble()! == 0 {
                     throw OdoException.RuntimeError(message: "Attempted Division operation over zero.")
                 }
@@ -83,9 +83,9 @@ extension Odo {
         
         func arithmeticWithStrings(lhs: Value, op: Token, rhs: Value) -> Value {
             switch op.type {
-            case .Plus:
+            case .plus:
                 return StringValue(value: lhs.toString() + rhs.toString())
-            case .Mul:
+            case .mul:
                 var result = ""
                 let rightAsInt = (rhs as! IntValue).value
                 for _ in 0..<rightAsInt {
@@ -102,7 +102,7 @@ extension Odo {
             let rhs = try visit(node: rhs) as! BoolValue
             
             switch op.type {
-            case .And:
+            case .and:
                 return BoolValue(value: lhs.value && rhs.value)
             default:
                 return BoolValue(value: lhs.value || rhs.value)

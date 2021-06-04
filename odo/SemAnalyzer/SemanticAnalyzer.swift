@@ -13,19 +13,19 @@ extension Odo {
         
         func visit(node: Node) throws -> NodeResult {
             switch node {
-            case .TDouble(_):
+            case .double(_):
                 return NodeResult(tp: .doubleType)
-            case .Integer(_):
+            case .int(_):
                 return NodeResult(tp: .intType)
-            case .String(_):
+            case .string(_):
                 return NodeResult(tp: .stringType)
-            case .True, .False:
+            case .true, .false:
                 return NodeResult(tp: .boolType)
-            case .ArithmeticOp(let lhs, let op, let rhs):
+            case .arithmeticOp(let lhs, let op, let rhs):
                 return try arithmeticOp(lhs: lhs, op: op,rhs: rhs)
-            case .LogicOp(let lhs, let op, let rhs):
+            case .logicOp(let lhs, let op, let rhs):
                 return try logicOp(lhs: lhs, op: op,rhs: rhs)
-            case .NoOp:
+            case .noOp:
                 return .nothing
             }
         }
@@ -59,9 +59,9 @@ extension Odo {
         
         func arithmeticWithStrings(lhs: TypeSymbol, op: Token, rhs: TypeSymbol) throws -> NodeResult {
             switch op.type {
-            case .Plus:
+            case .plus:
                 return NodeResult(tp: .stringType)
-            case .Mul:
+            case .mul:
                 if rhs == .intType {
                     return NodeResult(tp: .stringType)
                 } else {
@@ -95,7 +95,7 @@ extension Odo {
             }
             
             switch op.type {
-            case .And, .Or:
+            case .and, .or:
                 break
             default:
                 throw OdoException.SemanticError(message: "Invalid logic operator `\(op)`")

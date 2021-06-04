@@ -11,10 +11,10 @@ extension Odo {
     public class Lexer {
         
         static let keyWords: [String: Token] = [
-            "true": Token(type: .True),
-            "false": Token(type: .False),
-            "and": Token(type: .And),
-            "or": Token(type: .Or)
+            "true": Token(type: .true),
+            "false": Token(type: .false),
+            "and": Token(type: .and),
+            "or": Token(type: .or)
         ]
         
         private var text: String = ""
@@ -74,9 +74,9 @@ extension Odo {
             }
             
             if foundPoint {
-                return Token(type: .Double, lexeme: result)
+                return Token(type: .double, lexeme: result)
             } else {
-                return Token(type: .Integer, lexeme: result)
+                return Token(type: .int, lexeme: result)
             }
         }
         
@@ -126,7 +126,7 @@ extension Odo {
             
             advance()
 
-            return Token(type: .String, lexeme: result)
+            return Token(type: .string, lexeme: result)
         }
         
         func identifier() -> Token {
@@ -142,7 +142,7 @@ extension Odo {
             if let keyword = Self.keyWords[result] {
                 return keyword
             } else {
-                return Token(type: .Identifier, lexeme: result)
+                return Token(type: .identifier, lexeme: result)
             }
         }
 
@@ -155,7 +155,7 @@ extension Odo {
         public func getNextToken() throws -> Token {
             ignoreWhitespace()
             guard let char = currentChar else {
-                return Token(type: .EOF)
+                return Token(type: .eof)
             }
             
             switch char {
@@ -165,16 +165,16 @@ extension Odo {
                 return identifier()
             case "+":
                 advance()
-                return Token(type: .Plus)
+                return Token(type: .plus)
             case "-":
                 advance()
-                return Token(type: .Minus)
+                return Token(type: .minus)
             case "*":
                 advance()
-                return Token(type: .Mul)
+                return Token(type: .mul)
             case "/":
                 advance()
-                return Token(type: .Div)
+                return Token(type: .div)
             case "\"", "'":
                 return try string()
             default:

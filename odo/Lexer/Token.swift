@@ -10,26 +10,28 @@ extension Odo {
     public struct Token: CustomStringConvertible {
         public enum Kind {
             // Literals
-            case Integer
-            case Double
-            case String
+            case int
+            case double
+            case string
 
             // Operators
-            case Plus
-            case Minus
-            case Mul
-            case Div
+            case plus
+            case minus
+            case mul
+            case div
             
-            case And
-            case Or
+            case and
+            case or
             
-            case Identifier
+            case identifier
             
             // Keywords
-            case True
-            case False
+            // Should I be naming them after keywords?
+            // Sure. why not? FIXME
+            case `true`
+            case `false`
 
-            case EOF
+            case eof
         }
         
         public var type: Kind

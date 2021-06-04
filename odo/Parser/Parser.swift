@@ -10,7 +10,7 @@ extension Odo {
         let lexer = Lexer()
         var currentToken: Token
         public init() {
-            currentToken = Token(type: .EOF)
+            currentToken = Token(type: .eof)
         }
         
         func eat(tp: Token.Kind) throws {
@@ -25,7 +25,7 @@ extension Odo {
         func program() throws -> Node {
             let result = try block()
             
-            if currentToken.type != .EOF {
+            if currentToken.type != .eof {
                 throw OdoException.SyntaxError(message: "Unextected Token \"\(currentToken)\" found at line \(lexer.currentLine).")
             }
             
@@ -41,10 +41,10 @@ extension Odo {
         func or() throws -> Node {
             var result = try and()
             
-            while currentToken.type == .Or {
+            while currentToken.type == .or {
                 let op = currentToken
                 try eat(tp: currentToken.type)
-                result = .LogicOp(result, op, try and())
+                result = .logicOp(result, op, try and())
             }
             
             return result
@@ -53,10 +53,10 @@ extension Odo {
         func and() throws -> Node {
             var result = try expression()
             
-            while currentToken.type == .And {
+            while currentToken.type == .and {
                 let op = currentToken
                 try eat(tp: currentToken.type)
-                result = .LogicOp(result, op, try expression())
+                result = .logicOp(result, op, try expression())
             }
             
             return result
@@ -65,11 +65,11 @@ extension Odo {
         func expression() throws -> Node {
             var result = try term()
             
-            while   currentToken.type == .Plus ||
-                    currentToken.type == .Minus {
+            while   currentToken.type == .plus ||
+                    currentToken.type == .minus {
                 let op = currentToken
                 try eat(tp: currentToken.type)
-                result = .ArithmeticOp(result, op, try term())
+                result = .arithmeticOp(result, op, try term())
             }
             
             return result
@@ -78,11 +78,11 @@ extension Odo {
         func term() throws -> Node {
             var result = try factor()
             
-            while   currentToken.type == .Mul ||
-                    currentToken.type == .Div {
+            while   currentToken.type == .mul ||
+                    currentToken.type == .div {
                 let op = currentToken
                 try eat(tp: currentToken.type)
-                result = .ArithmeticOp(result, op, try factor())
+                result = .arithmeticOp(result, op, try factor())
             }
             
             return result
@@ -90,24 +90,24 @@ extension Odo {
         
         func factor() throws -> Node {
             switch currentToken.type {
-            case .Double:
+            case .double:
                 let token = currentToken
-                try eat(tp: .Double)
-                return .TDouble(token)
-            case .Integer:
+                try eat(tp: .double)
+                return .double(token)
+            case .int:
                 let token = currentToken
-                try eat(tp: .Integer)
-                return .Integer(token)
-            case .String:
+                try eat(tp: .int)
+                return .int(token)
+            case .string:
                 let token = currentToken
-                try eat(tp: .String)
-                return .String(token)
-            case .True:
-                try eat(tp: .True)
-                return .True
-            case .False:
-                try eat(tp: .False)
-                return .False
+                try eat(tp: .string)
+                return .string(token)
+            case .true:
+                try eat(tp: .true)
+                return .true
+            case .false:
+                try eat(tp: .false)
+                return .false
             default:
                 break
             }
