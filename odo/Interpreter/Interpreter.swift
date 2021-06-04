@@ -73,7 +73,7 @@ extension Odo {
             case .plus:
                 result = lhs.asDouble()! + rhs.asDouble()!
             case .minus:
-                result = lhs.asDouble()! + rhs.asDouble()!
+                result = lhs.asDouble()! - rhs.asDouble()!
             case .mul:
                 result = lhs.asDouble()! * rhs.asDouble()!
             case .div:
