@@ -19,21 +19,18 @@ extension Odo {
         }
         
         var type: TypeSymbol?
-        var value: Value?
         
         var name: String
         
         var isType: Bool { false }
         
-        init(type: TypeSymbol, name: String, value: Value? = nil) {
+        init(name: String, type: TypeSymbol) {
             self.name = name
             self.type = type
-            self.value = value
         }
         
-        fileprivate init(name: String, value: Value? = nil) {
+        fileprivate init(name: String) {
             self.type = nil
-            self.value = value
             self.name = name
         }
         
@@ -42,18 +39,19 @@ extension Odo {
         }
         
         // Builtin types
-        static let nullType     = PrimitiveTypeSymbol(name: "$nullType")
-        static let boolType     = PrimitiveTypeSymbol(name: "bool")
-        static let stringType   = PrimitiveTypeSymbol(name: "string")
+        static let anyType      = PrimitiveTypeSymbol(name: "any")
+        static let nullType     = PrimitiveTypeSymbol(name: "$nullType", type: .anyType)
+        static let boolType     = PrimitiveTypeSymbol(name: "bool", type: .anyType)
+        static let stringType   = PrimitiveTypeSymbol(name: "string", type: .anyType)
         
         static let intType: PrimitiveTypeSymbol     = {
-            let val = PrimitiveTypeSymbol(name: "int")
+            let val = PrimitiveTypeSymbol(name: "int", type: .anyType)
             val.isNumeric = true
             return val
         }()
 
         static let doubleType: PrimitiveTypeSymbol  = {
-            let val = PrimitiveTypeSymbol(name: "double")
+            let val = PrimitiveTypeSymbol(name: "double", type: .anyType)
             val.isNumeric = true
             return val
         }()
@@ -65,15 +63,57 @@ extension Odo {
         
         fileprivate(set) var isNumeric = false
         
-        init(type: TypeSymbol?, name: String) {
+        override init(name: String, type: TypeSymbol?) {
             super.init(name: name)
         }
     }
     
     class PrimitiveTypeSymbol: TypeSymbol {
         override var isPrimitive: Bool { true }
-        init(name: String) {
-            super.init(type: nil, name: name)
+        override init(name: String, type tp: TypeSymbol? = nil) {
+            super.init(name: name, type: tp)
         }
     }
+    
+    class VarSymbol: Symbol {
+        var value: Value?
+        
+        init(name: String, type: TypeSymbol, value: Value? = nil) {
+            self.value = value
+            super.init(name: name, type: type)
+        }
+    }
+    
+    
+    class SymbolTable {
+        
+        let name: String
+        var parent: SymbolTable?
+        
+        private var symbols: Dictionary<String, Symbol> = [:]
+        
+        var level: Int {
+            parent == nil
+                ? 0
+                : parent!.level + 1
+        }
+        
+        init(_ name: String, parent: SymbolTable? = nil) {
+            self.name = name
+            self.parent = parent
+        }
+        
+        @discardableResult
+        func addSymbol(_ sym: Symbol) -> Symbol? {
+            if symbols.contains(where: { $0.key == sym.name }) {
+                return nil
+            }
+            
+            symbols[sym.name] = sym
+            
+            return sym
+        }
+
+    }
+    
 }

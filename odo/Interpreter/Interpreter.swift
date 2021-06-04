@@ -9,8 +9,23 @@ extension Odo {
     public class Interpreter {
         let parser = Parser()
         let semAn: SemanticAnalyzer
+        
+        let globalTable: SymbolTable
+        
+        var currentScope: SymbolTable
+        
         public init() {
             semAn = SemanticAnalyzer()
+            
+            globalTable = SymbolTable("globalTable")
+            globalTable.addSymbol(.anyType)
+            globalTable.addSymbol(.intType)
+            globalTable.addSymbol(.doubleType)
+            globalTable.addSymbol(.boolType)
+            globalTable.addSymbol(.stringType)
+            globalTable.addSymbol(.nullType)
+            
+            currentScope = globalTable
         }
         
         @discardableResult
