@@ -9,14 +9,22 @@ extension Odo {
     
     public struct Token {
         public enum Kind {
+            // Literals
             case Integer
             case Double
             case String
 
+            // Operators
             case Plus
             case Minus
             case Mul
             case Div
+            
+            case Identifier
+            
+            // Keywords
+            case True
+            case False
 
             case EOF
         }

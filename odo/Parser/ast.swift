@@ -11,6 +11,10 @@ extension Odo {
         case Integer(Token)
         case TDouble(Token)
         case String(Token)
+        
+        case True
+        case False
+        
         case ArithmeticOp(Node, Token, Node)
         
         case NoOp

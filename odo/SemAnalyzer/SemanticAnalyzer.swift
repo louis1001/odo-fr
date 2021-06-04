@@ -19,6 +19,8 @@ extension Odo {
                 return NodeResult(tp: .intType)
             case .String(_):
                 return NodeResult(tp: .stringType)
+            case .True, .False:
+                return NodeResult(tp: .boolType)
             case .ArithmeticOp(let lhs, let op, let rhs):
                 return try arithmeticOp(lhs: lhs, op: op,rhs: rhs)
             case .NoOp:

@@ -9,6 +9,12 @@ import Foundation
 
 extension Odo {
     public class Lexer {
+        
+        static let keyWords: [String: Token] = [
+            "true": Token(type: .True),
+            "false": Token(type: .False)
+        ]
+        
         private var text: String = ""
         
         private var currentPos: String.Index
@@ -121,6 +127,23 @@ extension Odo {
             return Token(type: .String, lexeme: result)
         }
         
+        func identifier() -> Token {
+            var result = "\(currentChar!)"
+            advance()
+            
+            while let char = currentChar,
+                  char.isLetter || char.isNumber || char == "_" {
+                result.append(currentChar!)
+                advance()
+            }
+            
+            if let keyword = Self.keyWords[result] {
+                return keyword
+            } else {
+                return Token(type: .Identifier, lexeme: result)
+            }
+        }
+
         func ignoreWhitespace() {
             while isWhitespace() {
                 advance()
@@ -136,6 +159,8 @@ extension Odo {
             switch char {
             case let x where x.isNumber:
                 return number()
+            case let x where x.isLetter || x == "_":
+                return identifier()
             case "+":
                 advance()
                 return Token(type: .Plus)

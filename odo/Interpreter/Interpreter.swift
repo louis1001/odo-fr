@@ -21,6 +21,10 @@ extension Odo {
                 return IntValue(value: Int(value.lexeme)!)
             case .String(let value):
                 return StringValue(value: value.lexeme)
+            case .True:
+                return BoolValue(value: true)
+            case .False:
+                return BoolValue(value: false)
             case .ArithmeticOp(let lhs, let op, let rhs):
                 return try aritmeticOp(lhs: lhs, op: op, rhs: rhs)
             case .NoOp:
