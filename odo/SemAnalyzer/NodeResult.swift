@@ -11,5 +11,8 @@ extension Odo {
         
         var isConstant = false
         var hasSideEffects = true
+        
+        // MARK: - Constants
+        static let nothing = NodeResult()
     }
 }

@@ -12,7 +12,9 @@ extension Odo {
         
         static let keyWords: [String: Token] = [
             "true": Token(type: .True),
-            "false": Token(type: .False)
+            "false": Token(type: .False),
+            "and": Token(type: .And),
+            "or": Token(type: .Or)
         ]
         
         private var text: String = ""

@@ -7,7 +7,7 @@
 
 extension Odo {
     
-    public struct Token {
+    public struct Token: CustomStringConvertible {
         public enum Kind {
             // Literals
             case Integer
@@ -19,6 +19,9 @@ extension Odo {
             case Minus
             case Mul
             case Div
+            
+            case And
+            case Or
             
             case Identifier
             
@@ -32,7 +35,7 @@ extension Odo {
         public var type: Kind
         public var lexeme: String!
         
-        public func toString() -> String {
+        public var description: String {
             let valueString: String
             if lexeme == nil {
                 valueString = ""

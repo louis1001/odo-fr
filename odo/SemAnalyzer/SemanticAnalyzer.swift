@@ -23,8 +23,10 @@ extension Odo {
                 return NodeResult(tp: .boolType)
             case .ArithmeticOp(let lhs, let op, let rhs):
                 return try arithmeticOp(lhs: lhs, op: op,rhs: rhs)
+            case .LogicOp(let lhs, let op, let rhs):
+                return try logicOp(lhs: lhs, op: op,rhs: rhs)
             case .NoOp:
-                return NodeResult()
+                return .nothing
             }
         }
         
@@ -66,8 +68,40 @@ extension Odo {
                     throw OdoException.TypeError(message: "String can only be multiplied by an integer.")
                 }
             default:
-                throw OdoException.SemanticError(message: "Invalid operation between strings `\(op.toString())`")
+                throw OdoException.SemanticError(message: "Invalid operation between strings `\(op)`")
             }
+        }
+        
+        func logicOp(lhs: Node, op: Token, rhs: Node) throws -> NodeResult {
+            let lhs = try visit(node: lhs)
+            let rhs = try visit(node: rhs)
+            
+            let operandInLogic = " operand in logic operation `\(op)`"
+            
+            guard lhs.tp != nil else {
+                throw OdoException.ValueError(message: "Left \(operandInLogic) must return a value.")
+            }
+            
+            guard rhs.tp != nil else {
+                throw OdoException.ValueError(message: "Right \(operandInLogic) must return a value.")
+            }
+            
+            guard lhs.tp == .boolType else {
+                throw OdoException.TypeError(message: "Left \(operandInLogic) is not boolean. Has type \(lhs.tp!)")
+            }
+            
+            guard rhs.tp == .boolType else {
+                throw OdoException.TypeError(message: "Right \(operandInLogic) is not boolean. Has type \(rhs.tp!)")
+            }
+            
+            switch op.type {
+            case .And, .Or:
+                break
+            default:
+                throw OdoException.SemanticError(message: "Invalid logic operator `\(op)`")
+            }
+            
+            return NodeResult(tp: .boolType)
         }
         
         func analyze(root: Node) throws {

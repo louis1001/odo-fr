@@ -18,7 +18,7 @@ extension Odo {
                 currentToken = try lexer.getNextToken()
             } else {
                 throw OdoException.SyntaxError(
-                    message: "Unextected Token \"\(currentToken.toString())\" found at line \(lexer.currentLine). Expected Token of type `\(tp)`")
+                    message: "Unextected Token \"\(currentToken)\" found at line \(lexer.currentLine). Expected Token of type `\(tp)`")
             }
         }
 
@@ -26,14 +26,38 @@ extension Odo {
             let result = try block()
             
             if currentToken.type != .EOF {
-                throw OdoException.SyntaxError(message: "Unextected Token \"\(currentToken.toString())\" found at line \(lexer.currentLine).")
+                throw OdoException.SyntaxError(message: "Unextected Token \"\(currentToken)\" found at line \(lexer.currentLine).")
             }
             
             return result
         }
         
         func block() throws -> Node {
-            let result = try expression()
+            let result = try or()
+            
+            return result
+        }
+        
+        func or() throws -> Node {
+            var result = try and()
+            
+            while currentToken.type == .Or {
+                let op = currentToken
+                try eat(tp: currentToken.type)
+                result = .LogicOp(result, op, try and())
+            }
+            
+            return result
+        }
+        
+        func and() throws -> Node {
+            var result = try expression()
+            
+            while currentToken.type == .And {
+                let op = currentToken
+                try eat(tp: currentToken.type)
+                result = .LogicOp(result, op, try expression())
+            }
             
             return result
         }
@@ -88,7 +112,7 @@ extension Odo {
                 break
             }
 
-            throw OdoException.SyntaxError(message: "Unexpected token `\(currentToken.toString())`")
+            throw OdoException.SyntaxError(message: "Unexpected token `\(currentToken)`")
         }
         
         func setText(to text: String) throws {

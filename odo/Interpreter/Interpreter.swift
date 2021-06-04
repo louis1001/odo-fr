@@ -27,6 +27,8 @@ extension Odo {
                 return BoolValue(value: false)
             case .ArithmeticOp(let lhs, let op, let rhs):
                 return try aritmeticOp(lhs: lhs, op: op, rhs: rhs)
+            case .LogicOp(let lhs, let op, let rhs):
+                return try logicOp(lhs: lhs, op: op, rhs: rhs)
             case .NoOp:
                 break
             }
@@ -92,6 +94,18 @@ extension Odo {
                 return StringValue(value: result)
             default:
                 fatalError("Invalid operation with strings. Ending program")
+            }
+        }
+        
+        func logicOp(lhs: Node, op: Token, rhs: Node) throws -> Value {
+            let lhs = try visit(node: lhs) as! BoolValue
+            let rhs = try visit(node: rhs) as! BoolValue
+            
+            switch op.type {
+            case .And:
+                return BoolValue(value: lhs.value && rhs.value)
+            default:
+                return BoolValue(value: lhs.value || rhs.value)
             }
         }
         
