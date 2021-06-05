@@ -32,6 +32,10 @@ extension Odo {
             return result
         }
         
+        func programContent() throws -> [Node]{
+            return try statementList()
+        }
+        
         func statementTerminator() throws {
             if currentToken.type == .semiColon {
                 try eat(tp: .semiColon)

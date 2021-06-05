@@ -18,17 +18,10 @@ while true {
     }
     
     do {
-        let result = try inter.interpret(code: val)
+        let result = try inter.repl(code: val)
         print(result)
     } catch let err as Odo.OdoException {
         print(err.description())
     }
-//    let lexer = Odo.Lexer(text: val ?? "")
-//    var currToken = try! lexer.getNextToken()
-//
-//    while currToken.type != .eof {
-//        print(currToken.toString())
-//        currToken = try! lexer.getNextToken()
-//    }
     
 }

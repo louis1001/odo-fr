@@ -7,8 +7,17 @@
 
 extension Odo {
     class SemanticAnalyzer {
-        init() {
-            
+        let interpreter: Interpreter
+        let globalScope: SymbolTable
+        let replScope: SymbolTable
+        
+        var currentScope: SymbolTable
+        
+        init(inter: Interpreter) {
+            self.interpreter = inter
+            globalScope = SymbolTable("semanticGlobalTable", parent: inter.globalTable)
+            replScope = SymbolTable("semanticRepl", parent: globalScope)
+            currentScope = globalScope
         }
         
         @discardableResult
@@ -117,6 +126,17 @@ extension Odo {
         
         func analyze(root: Node) throws {
             try visit(node: root)
+        }
+        
+        @discardableResult
+        func fromRepl(statement: Node) throws -> NodeResult{
+            let tempScope = currentScope
+            currentScope = replScope
+            
+            let result = try visit(node: statement)
+            
+            currentScope = tempScope
+            return result
         }
     }
 }

@@ -8,15 +8,14 @@
 extension Odo {
     public class Interpreter {
         let parser = Parser()
-        let semAn: SemanticAnalyzer
+        lazy var semAn: SemanticAnalyzer = SemanticAnalyzer(inter: self)
         
         let globalTable: SymbolTable
+        let replScope: SymbolTable
         
         var currentScope: SymbolTable
         
         public init() {
-            semAn = SemanticAnalyzer()
-            
             globalTable = SymbolTable("globalTable")
             globalTable.addSymbol(.anyType)
             globalTable.addSymbol(.intType)
@@ -26,6 +25,9 @@ extension Odo {
             globalTable.addSymbol(.nullType)
             
             currentScope = globalTable
+            
+            replScope = SymbolTable("repl", parent: globalTable)
+            replScope.addSymbol(VarSymbol(name: "_", type: .anyType))
         }
         
         @discardableResult
@@ -143,6 +145,23 @@ extension Odo {
             try semAn.analyze(root: root)
             
             return try visit(node: root)
+        }
+        
+        public func repl(code: String) throws -> Value {
+            try parser.setText(to: code)
+            let content = try parser.programContent()
+            
+            currentScope = replScope
+            
+            var result: Value = .null
+            
+            for statement in content {
+                try semAn.fromRepl(statement: statement)
+                result = try visit(node: statement)
+            }
+            
+            currentScope = globalTable
+            return result
         }
     }
 }
