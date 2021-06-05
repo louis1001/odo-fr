@@ -24,6 +24,10 @@ extension Odo {
         
         var isType: Bool { false }
         
+        // Semantic Information
+        var isInitialized = true
+        var hasBeenChecked = true
+        
         init(name: String, type: TypeSymbol) {
             self.name = name
             self.type = type
@@ -81,6 +85,7 @@ extension Odo {
         init(name: String, type: TypeSymbol, value: Value? = nil) {
             self.value = value
             super.init(name: name, type: type)
+            isInitialized = value != nil
         }
     }
     
@@ -101,6 +106,10 @@ extension Odo {
         init(_ name: String, parent: SymbolTable? = nil) {
             self.name = name
             self.parent = parent
+        }
+        
+        subscript(name: String, inParents: Bool = true) -> Symbol? {
+            symbols[name] ?? parent?[name]
         }
         
         @discardableResult

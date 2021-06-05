@@ -183,6 +183,9 @@ extension Odo {
             case ";":
                 advance()
                 return Token(type: .semiColon)
+            case "=":
+                advance()
+                return Token(type: .assignment)
             default:
                 throw OdoException.InputError(line: currentLine, pos: currentColumn, character: char)
             }

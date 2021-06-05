@@ -13,7 +13,7 @@ extension Odo {
         final var type: TypeSymbol!
         var isPrimitive: Bool { false }
 
-        static let null: PrimitiveValue = NullValue()
+        public static let null: PrimitiveValue = NullValue()
         
         final class func primitive(_ value: Int) -> IntValue {
             return IntValue(value: value)

@@ -21,6 +21,10 @@ extension Odo {
         case arithmeticOp(Node, Token, Node)
         case logicOp(Node, Token, Node)
         
+        case variable(Token)
+        case varDeclaration(Node, Token, Node)
+        case assignment(Node, Node)
+        
         case noOp
         
         

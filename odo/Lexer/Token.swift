@@ -34,6 +34,8 @@ extension Odo {
             // Punctuation
             case semiColon
             
+            case assignment
+            
             case newLine
 
             case eof

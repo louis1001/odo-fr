@@ -32,6 +32,22 @@ extension Odo {
             return result
         }
         
+        func declaration(type: Node) throws -> Node {
+            // Refactor. var or let syntax instead of c-like
+            let name = currentToken
+            try eat(tp: .identifier)
+            
+            let assignment: Node
+            if currentToken.type == .assignment {
+                try eat(tp: .assignment)
+                assignment = try or()
+            } else {
+                assignment = .noOp
+            }
+            
+            return .varDeclaration(type, name, assignment)
+        }
+        
         func programContent() throws -> [Node]{
             return try statementList()
         }
@@ -127,13 +143,28 @@ extension Odo {
         }
         
         func term() throws -> Node {
-            var result = try factor()
+            var result = try postfix()
             
             while   currentToken.type == .mul ||
                     currentToken.type == .div {
                 let op = currentToken
                 try eat(tp: currentToken.type)
-                result = .arithmeticOp(result, op, try factor())
+                result = .arithmeticOp(result, op, try postfix())
+            }
+            
+            return result
+        }
+        
+        func postfix() throws -> Node {
+            var result = try factor()
+            
+//            while currentToken is one of the postfixes
+            
+            if currentToken.type == .identifier {
+                result = try declaration(type: result)
+            } else if currentToken.type == .assignment {
+                try eat(tp: .assignment)
+                result = .assignment(result, try or())
             }
             
             return result
@@ -159,6 +190,10 @@ extension Odo {
             case .false:
                 try eat(tp: .false)
                 return .false
+            case .identifier:
+                let name = currentToken
+                try eat(tp: .identifier)
+                return .variable(name)
             default:
                 break
             }

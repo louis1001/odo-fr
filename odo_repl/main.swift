@@ -19,7 +19,9 @@ while true {
     
     do {
         let result = try inter.repl(code: val)
-        print(result)
+        if result !== Odo.Value.null {
+            print(result)
+        }
     } catch let err as Odo.OdoException {
         print(err.description())
     }

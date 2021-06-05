@@ -49,6 +49,14 @@ extension Odo {
                 return try aritmeticOp(lhs: lhs, op: op, rhs: rhs)
             case .logicOp(let lhs, let op, let rhs):
                 return try logicOp(lhs: lhs, op: op, rhs: rhs)
+                
+            case .assignment(let lhs, let val):
+                return try assignment(to: lhs, val: val)
+            case .variable(let name):
+                return try variable(name: name)
+            case .varDeclaration(let tp, let name, let initial):
+                return try varDeclaration(tp: tp, name: name, initial: initial)
+                
             case .noOp:
                 break
             }
@@ -136,6 +144,72 @@ extension Odo {
             default:
                 return BoolValue(value: lhs.value || rhs.value)
             }
+        }
+        
+        func assignment(to lhs: Node, val: Node) throws -> Value {
+            let varSym = try getSymbolFromNode(lhs) as! VarSymbol
+            var newValue = try visit(node: val)
+            
+            if let _ = varSym.value {
+                // If oldValue is copyable
+                // Copy
+            } else {
+                // If newValue is copyable
+                // Copy
+                
+                if varSym.type == .anyType {
+                    varSym.type = newValue.type
+                } else {
+                    if varSym.type == .intType && newValue.type == .doubleType {
+                        let internalValue = (newValue as! DoubleValue).asDouble()!
+                        newValue = IntValue(value: Int(internalValue))
+                    } else if varSym.type == .doubleType && newValue.type == .intType {
+                        let internalValue = (newValue as! IntValue).asDouble()!
+                        newValue = DoubleValue(value: internalValue)
+                    }
+                }
+            }
+            
+            varSym.value = newValue
+            
+            return .null
+        }
+        
+        func variable(name: Token) throws -> Value {
+            let symbol = currentScope[name.lexeme] as! VarSymbol
+            
+            return symbol.value!
+        }
+        
+        func varDeclaration(tp: Node, name: Token, initial: Node) throws -> Value {
+            var initialValue: Value?
+            switch initial {
+            case .noOp:
+                break
+            default:
+                initialValue = try visit(node: initial)
+            }
+            
+            let type = try getSymbolFromNode(tp) as! TypeSymbol
+            
+            let newVar: VarSymbol = VarSymbol(name: name.lexeme, type: type, value: initialValue)
+            
+            currentScope.addSymbol(newVar)
+            
+            return .null
+        }
+        
+        func getSymbolFromNode(_ node: Node) throws -> Symbol? {
+            // To improve later!
+            
+            switch node {
+            case .variable(let name):
+                return currentScope[name.lexeme, true]
+            default:
+                break
+            }
+
+            return Symbol(name: "", type: .anyType)
         }
         
         public func interpret(code: String) throws -> Value {

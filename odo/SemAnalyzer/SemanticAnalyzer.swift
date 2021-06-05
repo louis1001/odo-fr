@@ -37,6 +37,13 @@ extension Odo {
                 return try arithmeticOp(lhs: lhs, op: op,rhs: rhs)
             case .logicOp(let lhs, let op, let rhs):
                 return try logicOp(lhs: lhs, op: op,rhs: rhs)
+
+            case .assignment(let lhs, let val):
+                return try assignment(to: lhs, val: val)
+            case .variable(let name):
+                return try variable(name: name)
+            case .varDeclaration(let tp, let name, let initial):
+                return try varDeclaration(tp: tp, name: name, initial: initial)
             case .noOp:
                 return .nothing
             }
@@ -122,6 +129,140 @@ extension Odo {
             }
             
             return NodeResult(tp: .boolType)
+        }
+        
+        func assignment(to lhs: Node, val: Node) throws -> NodeResult {
+            if let sym = try getSymbolFromNode(lhs) {
+                guard let _ = sym.type, !sym.isType else {
+                    // Error! Invalid assignment
+                    throw OdoException.SemanticError(message: "Invalid assignment to symbol `\(sym.name)`.")
+                }
+                
+                let newValue = try visit(node: val)
+                
+                guard let newType = newValue.tp else {
+                    throw OdoException.SemanticError(message: "Invalid assignment to symbol `\(sym.name)`. Operation doesn't provide a value.")
+                }
+                
+                if !sym.isInitialized {
+                    if sym.type == .anyType {
+                        sym.type = newType
+                    }
+                    
+                    sym.isInitialized = true
+                }
+                
+                if !counts(type: newType, as: sym.type!) {
+                    throw OdoException.TypeError(
+                        message: "Invalid assignment, variable `\(sym.name)` expected value of type `\(sym.type!.name)` but recieved `\(newValue.tp?.name ?? "no value")`")
+                }
+                
+                // TODO: Set constantness and side effects for symbol
+            } else {
+                // Error!
+                throw OdoException.NameError(message: "Assignment to unknown variable.")
+            }
+            
+            return .nothing
+        }
+        
+        func variable(name: Token) throws -> NodeResult {
+            guard let sym = currentScope[name.lexeme] else {
+                throw OdoException.NameError(message: "Variable called `\(name.lexeme!)` not defined.")
+            }
+            
+            if !sym.hasBeenChecked {
+                // TODO: consumeLazy
+            }
+            
+            if sym.isInitialized {
+                // TODO: Constantness info
+                return NodeResult(tp: sym.type)
+            }
+            
+            throw OdoException.ValueError(message: "Using variable `\(sym.name)` when is hasn't been initialized.")
+        }
+        
+        func varDeclaration(tp: Node, name: Token, initial: Node) throws -> NodeResult {
+            if let _ = currentScope[name.lexeme] {
+                throw OdoException.NameError(message: "Variable called `\(name.lexeme ?? "??")` already exists.")
+            }
+            
+            guard let type = try getSymbolFromNode(tp) else {
+                throw OdoException.NameError(message: "Unknown type `\(tp)`")
+            }
+            
+            guard let type = type as? TypeSymbol else {
+                throw OdoException.TypeError(message: "Symbol `\(type.name)` is not a valid type.")
+            }
+            
+            if !type.hasBeenChecked {
+                // TODO: consume lazy
+            }
+            
+            let newVar = VarSymbol(name: name.lexeme, type: type)
+
+            switch initial {
+            case .noOp:
+                break
+            default:
+                let newValue = try visit(node: initial)
+                
+                guard let newType = newValue.tp else {
+                    throw OdoException.ValueError(message: "Initial expression for declaration of `\(newVar.name)` does not provide a value.")
+                }
+                
+                if !newType.hasBeenChecked {
+                    // TODO: consume lazy
+                }
+                
+                guard counts(type: newType, as: type) else {
+                    throw OdoException.TypeError(message: "Invalid declaration, variable `\(newVar.name)` expected value of type `\(type.name)` but recieved `\(newType.name)`")
+                }
+                
+                if type == .anyType {
+                    newVar.type = newType
+                }
+                
+                // TODO: Update constantness
+            
+                newVar.isInitialized = true
+                
+            }
+            
+            currentScope.addSymbol(newVar)
+            
+            return .nothing
+        }
+        
+        func getSymbolFromNode(_ node: Node) throws -> Symbol? {
+            // To improve later!
+            
+            switch node {
+            case .variable(let name):
+                return currentScope[name.lexeme, true]
+            default:
+                break
+            }
+
+            return Symbol(name: "", type: .anyType)
+        }
+        
+        func counts(type left: TypeSymbol, as right: TypeSymbol) -> Bool {
+            if right == .anyType { return true }
+//            if left is null and right a class type { return true }
+            
+            if left.isNumeric && right.isNumeric { return true }
+            
+            if left == right { return true }
+            
+            var curr: TypeSymbol = left
+            while let parent = curr.type {
+                if parent == right { return true }
+                curr = parent
+            }
+            
+            return false
         }
         
         func analyze(root: Node) throws {
