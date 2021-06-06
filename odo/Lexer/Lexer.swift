@@ -14,7 +14,8 @@ extension Odo {
             "true": Token(type: .true),
             "false": Token(type: .false),
             "and": Token(type: .and),
-            "or": Token(type: .or)
+            "or": Token(type: .or),
+            "var": Token(type: .var)
         ]
         
         private var code: String = ""

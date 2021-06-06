@@ -32,22 +32,6 @@ extension Odo {
             return result
         }
         
-        func declaration(type: Node) throws -> Node {
-            // Refactor. var or let syntax instead of c-like
-            let name = currentToken
-            try eat(tp: .identifier)
-            
-            let assignment: Node
-            if currentToken.type == .assignment {
-                try eat(tp: .assignment)
-                assignment = try or()
-            } else {
-                assignment = .noOp
-            }
-            
-            return .varDeclaration(type, name, assignment)
-        }
-        
         func programContent() throws -> [Node]{
             return try statementList()
         }
@@ -94,6 +78,9 @@ extension Odo {
         func statement(withTerm: Bool = true) throws -> Node {
             var result: Node = .noOp
             switch currentToken.type {
+            case .var:
+                try eat(tp: .var)
+                result = try declaration()
             default:
                 result = try or()
             }
@@ -103,6 +90,55 @@ extension Odo {
             }
             
             return result
+        }
+        
+        func getFullType() throws -> Node {
+            var tp: Node = .noOp
+            
+            if currentToken.type == .identifier {
+                tp = .variable(currentToken)
+                try eat(tp: .identifier)
+            /*} else if currentToken.type == .lessThan {
+                // Maybe it's a function type
+            */ } else {
+                throw OdoException.SyntaxError(
+                    message: "Unexpected token `\(currentToken)`. Expected a type for variable declaration"
+                )
+             }
+            
+            // while currentToken is ::
+            // make tp a static variable node
+            
+            // while currentToken is [
+            // make tp a index node
+            
+            return tp
+        }
+        
+        func declaration(forceType: Bool = false) throws -> Node {
+            // Refactor. var or let syntax instead of c-like
+            let name = currentToken
+            try eat(tp: .identifier)
+            
+            let type: Node
+            
+            if forceType || currentToken.type == .colon {
+                try eat(tp: .colon)
+                
+                type = try getFullType()
+            } else {
+                type = .variable(Token(type: .identifier, lexeme: "any"))
+            }
+            
+            let assignment: Node
+            if currentToken.type == .assignment {
+                try eat(tp: .assignment)
+                assignment = try or()
+            } else {
+                assignment = .noOp
+            }
+            
+            return .varDeclaration(type, name, assignment)
         }
         
         func or() throws -> Node {
@@ -160,9 +196,7 @@ extension Odo {
             
 //            while currentToken is one of the postfixes
             
-            if currentToken.type == .identifier {
-                result = try declaration(type: result)
-            } else if currentToken.type == .assignment {
+            if currentToken.type == .assignment {
                 try eat(tp: .assignment)
                 result = .assignment(result, try or())
             }

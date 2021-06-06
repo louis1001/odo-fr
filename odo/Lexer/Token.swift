@@ -30,8 +30,10 @@ extension Odo {
             // Sure. why not? FIXME
             case `true`
             case `false`
+            case `var`
             
             // Punctuation
+            case colon
             case semiColon
             
             case assignment
