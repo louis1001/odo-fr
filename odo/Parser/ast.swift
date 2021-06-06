@@ -10,7 +10,7 @@ extension Odo {
     indirect enum Node {
         case int(Token)
         case double(Token)
-        case string(Token)
+        case text(Token)
         
         // FIXME: What should I use instead of the straight up keywords?
         case `true`

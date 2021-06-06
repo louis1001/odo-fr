@@ -17,7 +17,7 @@ extension Odo {
             "or": Token(type: .or)
         ]
         
-        private var text: String = ""
+        private var code: String = ""
         
         private var currentPos: String.Index
         
@@ -32,14 +32,14 @@ extension Odo {
         }
         
         private var currentChar: Character? {
-            if currentPos >= text.endIndex {
+            if currentPos >= code.endIndex {
                 return nil
             }
-            return text[currentPos]
+            return code[currentPos]
         }
         
         public init(text: String = "") {
-            self.text = text
+            self.code = text
             self.currentPos = text.startIndex
         }
         
@@ -50,7 +50,7 @@ extension Odo {
             } else {
                 self._currentColumn += 1
             }
-            currentPos = text.index(currentPos, offsetBy: 1)
+            currentPos = code.index(currentPos, offsetBy: 1)
         }
         
         func isWhitespace() -> Bool {
@@ -103,7 +103,7 @@ extension Odo {
             }
         }
         
-        func string() throws -> Token {
+        func text() throws -> Token {
             let openning = currentChar!
             var result = ""
             
@@ -111,7 +111,7 @@ extension Odo {
             
             while currentChar != openning {
                 if currentChar == nil {
-                    throw OdoException.SyntaxError(message: "String literal has no matching `\(openning)`.")
+                    throw OdoException.SyntaxError(message: "Text literal has no matching `\(openning)`.")
                 }
 
                 if currentChar == "\\" {
@@ -126,7 +126,7 @@ extension Odo {
             
             advance()
 
-            return Token(type: .string, lexeme: result)
+            return Token(type: .text, lexeme: result)
         }
         
         func identifier() -> Token {
@@ -179,10 +179,13 @@ extension Odo {
                 advance()
                 return Token(type: .div)
             case "\"", "'":
-                return try string()
+                return try text()
             case ";":
                 advance()
                 return Token(type: .semiColon)
+            case ":":
+                advance()
+                return Token(type: .colon)
             case "=":
                 advance()
                 return Token(type: .assignment)
@@ -192,7 +195,7 @@ extension Odo {
         }
         
         public func setText(to text: String) {
-            self.text = text
+            self.code = text
             self.currentPos = text.startIndex
             
             self._currentLine = 1

@@ -29,8 +29,8 @@ extension Odo {
                 return NodeResult(tp: .doubleType)
             case .int(_):
                 return NodeResult(tp: .intType)
-            case .string(_):
-                return NodeResult(tp: .stringType)
+            case .text(_):
+                return NodeResult(tp: .textType)
             case .true, .false:
                 return NodeResult(tp: .boolType)
             case .arithmeticOp(let lhs, let op, let rhs):
@@ -69,8 +69,8 @@ extension Odo {
                 throw OdoException.ValueError(message: "Right operand in binary operation has no value.")
             }
             
-            if left == .stringType || right == .stringType {
-                return try arithmeticWithStrings(lhs: left, op: op, rhs: right)
+            if left == .textType || right == .textType {
+                return try arithmeticWithTexts(lhs: left, op: op, rhs: right)
             }
             
             guard left.isNumeric && right.isNumeric else {
@@ -84,18 +84,18 @@ extension Odo {
             }
         }
         
-        func arithmeticWithStrings(lhs: TypeSymbol, op: Token, rhs: TypeSymbol) throws -> NodeResult {
+        func arithmeticWithTexts(lhs: TypeSymbol, op: Token, rhs: TypeSymbol) throws -> NodeResult {
             switch op.type {
             case .plus:
-                return NodeResult(tp: .stringType)
+                return NodeResult(tp: .textType)
             case .mul:
                 if rhs == .intType {
-                    return NodeResult(tp: .stringType)
+                    return NodeResult(tp: .textType)
                 } else {
-                    throw OdoException.TypeError(message: "String can only be multiplied by an integer.")
+                    throw OdoException.TypeError(message: "Text can only be multiplied by an integer.")
                 }
             default:
-                throw OdoException.SemanticError(message: "Invalid operation between strings `\(op)`")
+                throw OdoException.SemanticError(message: "Invalid operation between texts `\(op)`")
             }
         }
         

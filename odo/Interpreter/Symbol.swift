@@ -46,7 +46,7 @@ extension Odo {
         static let anyType      = PrimitiveTypeSymbol(name: "any")
         static let nullType     = PrimitiveTypeSymbol(name: "$nullType", type: .anyType)
         static let boolType     = PrimitiveTypeSymbol(name: "bool", type: .anyType)
-        static let stringType   = PrimitiveTypeSymbol(name: "string", type: .anyType)
+        static let textType   = PrimitiveTypeSymbol(name: "text", type: .anyType)
         
         static let intType: PrimitiveTypeSymbol     = {
             let val = PrimitiveTypeSymbol(name: "int", type: .anyType)

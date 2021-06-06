@@ -12,7 +12,7 @@ extension Odo {
             // Literals
             case int
             case double
-            case string
+            case text
 
             // Operators
             case plus

@@ -180,10 +180,10 @@ extension Odo {
                 let token = currentToken
                 try eat(tp: .int)
                 return .int(token)
-            case .string:
+            case .text:
                 let token = currentToken
-                try eat(tp: .string)
-                return .string(token)
+                try eat(tp: .text)
+                return .text(token)
             case .true:
                 try eat(tp: .true)
                 return .true

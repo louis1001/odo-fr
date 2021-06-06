@@ -23,8 +23,8 @@ extension Odo {
             return DoubleValue(value: value)
         }
         
-        final class func primitive(_ value: String) -> StringValue {
-            return StringValue(value: value)
+        final class func primitive(_ value: String) -> TextValue {
+            return TextValue(value: value)
         }
         
         final class func primitive(_ value: Bool) -> BoolValue {
@@ -35,7 +35,7 @@ extension Odo {
             "<value at:\(id)>"
         }
 
-        public func toString() -> String {
+        public func toText() -> String {
             return description
         }
     }
@@ -47,7 +47,7 @@ extension Odo {
         
         final var isInt    : Bool { self is IntValue }
         final var isDouble : Bool { self is DoubleValue }
-        final var isString : Bool { self is StringValue }
+        final var isText : Bool { self is TextValue }
         final var isBool   : Bool { self is BoolValue }
         
         func asDouble() -> Double? { return nil }
@@ -104,7 +104,7 @@ extension Odo {
         }
     }
     
-    public class StringValue : PrimitiveValue {
+    public class TextValue : PrimitiveValue {
         final var value: String
 
         init(value: String) {
@@ -112,7 +112,7 @@ extension Odo {
 
             super.init()
 
-            type = .stringType
+            type = .textType
         }
         
         public override var description: String {

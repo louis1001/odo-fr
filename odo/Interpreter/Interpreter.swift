@@ -21,7 +21,7 @@ extension Odo {
             globalTable.addSymbol(.intType)
             globalTable.addSymbol(.doubleType)
             globalTable.addSymbol(.boolType)
-            globalTable.addSymbol(.stringType)
+            globalTable.addSymbol(.textType)
             globalTable.addSymbol(.nullType)
             
             currentScope = globalTable
@@ -39,8 +39,8 @@ extension Odo {
                 return DoubleValue(value: Double(value.lexeme)!)
             case .int(let value):
                 return IntValue(value: Int(value.lexeme)!)
-            case .string(let value):
-                return StringValue(value: value.lexeme)
+            case .text(let value):
+                return TextValue(value: value.lexeme)
             case .true:
                 return BoolValue(value: true)
             case .false:
@@ -85,8 +85,8 @@ extension Odo {
             let leftVisited = try visit(node: lhs)
             let rightVisited = try visit(node: rhs)
             
-            if leftVisited.type == .stringType || rightVisited.type == .stringType {
-                return arithmeticWithStrings(lhs: leftVisited, op: op, rhs: rightVisited)
+            if leftVisited.type == .textType || rightVisited.type == .textType {
+                return arithmeticWithTexts(lhs: leftVisited, op: op, rhs: rightVisited)
             }
             
             let lhs = leftVisited as! PrimitiveValue
@@ -118,17 +118,17 @@ extension Odo {
             }
         }
         
-        func arithmeticWithStrings(lhs: Value, op: Token, rhs: Value) -> Value {
+        func arithmeticWithTexts(lhs: Value, op: Token, rhs: Value) -> Value {
             switch op.type {
             case .plus:
-                return StringValue(value: lhs.toString() + rhs.toString())
+                return TextValue(value: lhs.toText() + rhs.toText())
             case .mul:
                 var result = ""
                 let rightAsInt = (rhs as! IntValue).value
                 for _ in 0..<rightAsInt {
-                    result += lhs.toString()
+                    result += lhs.toText()
                 }
-                return StringValue(value: result)
+                return TextValue(value: result)
             default:
                 fatalError("Invalid operation with strings. Ending program")
             }
