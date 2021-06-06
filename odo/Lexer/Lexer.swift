@@ -190,6 +190,9 @@ extension Odo {
             case "=":
                 advance()
                 return Token(type: .assignment)
+            case "?":
+                advance()
+                return Token(type: .quest)
             default:
                 throw OdoException.InputError(line: currentLine, pos: currentColumn, character: char)
             }

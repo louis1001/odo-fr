@@ -57,6 +57,9 @@ extension Odo {
             case .varDeclaration(let tp, let name, let initial):
                 return try varDeclaration(tp: tp, name: name, initial: initial)
                 
+            case .ternaryOp(let condition, let trueCase, let falseCase):
+                return try ternaryOp(condition: condition, true: trueCase, false: falseCase)
+                
             case .noOp:
                 break
             }
@@ -197,6 +200,19 @@ extension Odo {
             currentScope.addSymbol(newVar)
             
             return .null
+        }
+        
+        func ternaryOp(condition: Node, true left: Node, false right: Node) throws -> Value {
+            let cond = try visit(node: condition) as! BoolValue
+            
+            let leftSide = try visit(node: left)
+            let rightSide = try visit(node: right)
+            
+            if cond.value {
+                return leftSide
+            } else {
+                return rightSide
+            }
         }
         
         func getSymbolFromNode(_ node: Node) throws -> Symbol? {

@@ -25,6 +25,8 @@ extension Odo {
         case varDeclaration(Node, Token, Node)
         case assignment(Node, Node)
         
+        case ternaryOp(Node, Node, Node)
+        
         case noOp
         
         

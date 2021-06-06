@@ -82,7 +82,7 @@ extension Odo {
                 try eat(tp: .var)
                 result = try declaration()
             default:
-                result = try or()
+                result = try ternaryOp()
             }
             
             if withTerm {
@@ -133,12 +133,28 @@ extension Odo {
             let assignment: Node
             if currentToken.type == .assignment {
                 try eat(tp: .assignment)
-                assignment = try or()
+                assignment = try ternaryOp()
             } else {
                 assignment = .noOp
             }
             
             return .varDeclaration(type, name, assignment)
+        }
+        
+        func ternaryOp() throws -> Node {
+            var result: Node = try or()
+            
+            while currentToken.type == .quest {
+                try eat(tp: .quest)
+                let trueExpr = try or()
+                try eat(tp: .colon)
+                
+                let falseExpr = try or()
+                
+                result = .ternaryOp(result, trueExpr, falseExpr)
+            }
+            
+            return result
         }
         
         func or() throws -> Node {
@@ -198,7 +214,7 @@ extension Odo {
             
             if currentToken.type == .assignment {
                 try eat(tp: .assignment)
-                result = .assignment(result, try or())
+                result = .assignment(result, try ternaryOp())
             }
             
             return result

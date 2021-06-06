@@ -44,6 +44,9 @@ extension Odo {
                 return try variable(name: name)
             case .varDeclaration(let tp, let name, let initial):
                 return try varDeclaration(tp: tp, name: name, initial: initial)
+                
+            case .ternaryOp(let condition, let trueCase, let falseCase):
+                return try ternaryOp(condition: condition, true: trueCase, false: falseCase)
             case .noOp:
                 return .nothing
             }
@@ -233,6 +236,33 @@ extension Odo {
             currentScope.addSymbol(newVar)
             
             return .nothing
+        }
+        
+        func ternaryOp(condition: Node, true trueCase: Node, false falseCase: Node) throws -> NodeResult {
+            
+            let cond = try visit(node: condition)
+            
+            if cond.tp != .boolType {
+                throw OdoException.TypeError(message: "Condition of ternary expression must be boolean.")
+            }
+            
+            let trueResult = try visit(node: trueCase)
+            let falseResult = try visit(node: falseCase)
+            
+            guard trueResult.tp != nil else {
+                throw OdoException.ValueError(message: "True branch in ternary operator must have a type (provide value).")
+            }
+            
+            guard falseResult.tp != nil else {
+                throw OdoException.ValueError(message: "False branch in ternary operator must have a type (provide value).")
+            }
+            
+            if !counts(type: trueResult.tp!, as: falseResult.tp!) {
+                throw OdoException.TypeError(message: "Both branches in ternary operator must return the same type.")
+            }
+            
+            // TODO: Return the type with higher hierarchy
+            return NodeResult(tp: falseResult.tp)
         }
         
         func getSymbolFromNode(_ node: Node) throws -> Symbol? {
