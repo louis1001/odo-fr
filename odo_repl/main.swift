@@ -11,9 +11,12 @@ let inter = Odo.Interpreter()
 
 while true {
     print("> ", terminator: "")
-    let val = readLine()!
+    guard let val = readLine() else {
+        break
+    }
     
     if val == "exit()" {
+        print("Bye")
         break
     }
     

@@ -185,15 +185,27 @@ extension Odo {
         }
         
         func varDeclaration(tp: Node, name: Token, initial: Node) throws -> Value {
+            var type = try getSymbolFromNode(tp) as! TypeSymbol
+
             var initialValue: Value?
             switch initial {
             case .noOp:
                 break
             default:
                 initialValue = try visit(node: initial)
+                
+                if type == .anyType {
+                    type = initialValue!.type
+                } else {
+                    if type == .intType && initialValue!.type == .doubleType {
+                        let internalValue = (initialValue as! DoubleValue).asDouble()!
+                        initialValue = IntValue(value: Int(internalValue))
+                    } else if type == .doubleType && initialValue!.type == .intType {
+                        let internalValue = (initialValue as! IntValue).asDouble()!
+                        initialValue = DoubleValue(value: internalValue)
+                    }
+                }
             }
-            
-            let type = try getSymbolFromNode(tp) as! TypeSymbol
             
             let newVar: VarSymbol = VarSymbol(name: name.lexeme, type: type, value: initialValue)
             
