@@ -277,6 +277,13 @@ extension Odo {
                 let name = currentToken
                 try eat(tp: .identifier)
                 return .variable(name)
+            case .parOpen:
+                try eat(tp: .parOpen)
+                ignoreNl()
+                let innerFactor = try ternaryOp()
+                ignoreNl()
+                try eat(tp: .parClose)
+                return innerFactor
             default:
                 break
             }

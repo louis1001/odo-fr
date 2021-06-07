@@ -193,6 +193,12 @@ extension Odo {
             case "?":
                 advance()
                 return Token(type: .quest)
+            case "(":
+                advance()
+                return Token(type: .parOpen)
+            case ")":
+                advance()
+                return Token(type: .parClose)
             default:
                 throw OdoException.InputError(line: currentLine, pos: currentColumn, character: char)
             }

@@ -36,6 +36,8 @@ extension Odo {
             case colon
             case semiColon
             case quest
+            case parOpen
+            case parClose
             
             case assignment
             
