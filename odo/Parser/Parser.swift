@@ -39,21 +39,18 @@ extension Odo {
         func statementTerminator() throws {
             if currentToken.type == .semiColon {
                 try eat(tp: .semiColon)
-                while currentToken.type == .newLine {
-                    try eat(tp: .newLine)
-                }
+                ignoreNl()
             } else if currentToken.type != .eof {
                 // if it's not any of the other terminators
                 try eat(tp: .newLine)
-                while currentToken.type == .newLine {
-                    try eat(tp: .newLine)
-                }
+                ignoreNl()
             }
         }
         
-        func ignoreNl() throws {
+        func ignoreNl() {
             while currentToken.type == .newLine {
-                try eat(tp: .newLine)
+                // Doesn't throws. Only eats if certain
+                try! eat(tp: .newLine)
             }
         }
         
@@ -66,7 +63,7 @@ extension Odo {
         func statementList() throws -> [Node] {
             var result: [Node] = []
             
-            try ignoreNl()
+            ignoreNl()
             
             while currentToken.type != .eof {
                 result.append(try statement())
@@ -94,6 +91,8 @@ extension Odo {
         
         func getFullType() throws -> Node {
             var tp: Node = .noOp
+            
+            ignoreNl()
             
             if currentToken.type == .identifier {
                 tp = .variable(currentToken)
@@ -133,6 +132,7 @@ extension Odo {
             let assignment: Node
             if currentToken.type == .assignment {
                 try eat(tp: .assignment)
+                ignoreNl()
                 assignment = try ternaryOp()
             } else {
                 assignment = .noOp
@@ -144,10 +144,20 @@ extension Odo {
         func ternaryOp() throws -> Node {
             var result: Node = try or()
             
+            ignoreNl()
+            
             while currentToken.type == .quest {
                 try eat(tp: .quest)
+                
+                ignoreNl()
+                
                 let trueExpr = try or()
+                
+                ignoreNl()
+                
                 try eat(tp: .colon)
+                
+                ignoreNl()
                 
                 let falseExpr = try or()
                 
@@ -160,10 +170,16 @@ extension Odo {
         func or() throws -> Node {
             var result = try and()
             
+            ignoreNl()
+            
             while currentToken.type == .or {
                 let op = currentToken
                 try eat(tp: currentToken.type)
+                
+                ignoreNl()
                 result = .logicOp(result, op, try and())
+                
+                ignoreNl()
             }
             
             return result
@@ -172,10 +188,14 @@ extension Odo {
         func and() throws -> Node {
             var result = try expression()
             
+            ignoreNl()
+            
             while currentToken.type == .and {
                 let op = currentToken
                 try eat(tp: currentToken.type)
+                ignoreNl()
                 result = .logicOp(result, op, try expression())
+                ignoreNl()
             }
             
             return result
@@ -184,11 +204,17 @@ extension Odo {
         func expression() throws -> Node {
             var result = try term()
             
+            ignoreNl()
+            
             while   currentToken.type == .plus ||
                     currentToken.type == .minus {
                 let op = currentToken
                 try eat(tp: currentToken.type)
+                
+                ignoreNl()
                 result = .arithmeticOp(result, op, try term())
+                
+                ignoreNl()
             }
             
             return result
@@ -197,11 +223,16 @@ extension Odo {
         func term() throws -> Node {
             var result = try postfix()
             
+            ignoreNl()
+            
             while   currentToken.type == .mul ||
                     currentToken.type == .div {
                 let op = currentToken
                 try eat(tp: currentToken.type)
+                
+                ignoreNl()
                 result = .arithmeticOp(result, op, try postfix())
+                ignoreNl()
             }
             
             return result
@@ -209,6 +240,8 @@ extension Odo {
         
         func postfix() throws -> Node {
             var result = try factor()
+            
+            ignoreNl()
             
 //            while currentToken is one of the postfixes
             
