@@ -109,7 +109,11 @@ extension Odo {
         }
         
         subscript(name: String, inParents: Bool = true) -> Symbol? {
-            symbols[name] ?? parent?[name]
+            if let here = symbols[name] { return here }
+            
+            if inParents { return parent?[name] }
+            
+            return nil
         }
         
         @discardableResult

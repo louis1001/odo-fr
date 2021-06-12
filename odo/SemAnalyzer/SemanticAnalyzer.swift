@@ -190,7 +190,7 @@ extension Odo {
         }
         
         func varDeclaration(tp: Node, name: Token, initial: Node) throws -> NodeResult {
-            if let _ = currentScope[name.lexeme] {
+            if let _ = currentScope[name.lexeme, false] {
                 throw OdoException.NameError(message: "Variable called `\(name.lexeme ?? "??")` already exists.")
             }
             
