@@ -60,6 +60,9 @@ extension Odo {
             case .ternaryOp(let condition, let trueCase, let falseCase):
                 return try ternaryOp(condition: condition, true: trueCase, false: falseCase)
                 
+            case .loop(let body):
+                return try loop(body: body)
+                
             case .noOp:
                 break
             }
@@ -228,6 +231,15 @@ extension Odo {
             } else {
                 return rightSide
             }
+        }
+        
+        func loop(body: Node) throws -> Value {
+            
+            while true {
+                try visit(node: body)
+            }
+            
+            return .null
         }
         
         func getSymbolFromNode(_ node: Node) throws -> Symbol? {

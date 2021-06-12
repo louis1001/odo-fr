@@ -27,6 +27,8 @@ extension Odo {
         
         case ternaryOp(Node, Node, Node)
         
+        case loop(Node)
+        
         case noOp
         
         

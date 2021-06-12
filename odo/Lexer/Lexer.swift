@@ -16,7 +16,9 @@ extension Odo {
             "and": Token(type: .and),
             "or": Token(type: .or),
             "var": Token(type: .var),
-            "if": Token(type: .if)
+            "if": Token(type: .if),
+            
+            "loop": Token(type: .loop)
         ]
         
         private var code: String = ""

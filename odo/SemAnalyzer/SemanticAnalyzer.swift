@@ -47,6 +47,9 @@ extension Odo {
                 
             case .ternaryOp(let condition, let trueCase, let falseCase):
                 return try ternaryOp(condition: condition, true: trueCase, false: falseCase)
+                
+            case .loop(let body):
+                return try loop(body: body)
             case .noOp:
                 return .nothing
             }
@@ -266,6 +269,11 @@ extension Odo {
             
             // TODO: Return the type with higher hierarchy
             return NodeResult(tp: falseResult.tp)
+        }
+        
+        func loop(body: Node) throws -> NodeResult {
+            try visit(node: body)
+            return .nothing
         }
         
         func getSymbolFromNode(_ node: Node) throws -> Symbol? {

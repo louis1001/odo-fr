@@ -32,6 +32,7 @@ extension Odo {
             case `false`
             case `var`
             case `if`
+            case loop
             
             // Punctuation
             case colon

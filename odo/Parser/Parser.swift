@@ -87,6 +87,11 @@ extension Odo {
                 try eat(tp: .curlOpen)
                 result = try block()
                 try eat(tp: .curlClose)
+            case .loop:
+                try eat(tp: .loop)
+                try eat(tp: .curlOpen)
+                result = .loop(try block())
+                try eat(tp: .curlClose)
             default:
                 result = try ternaryOp()
             }
