@@ -159,8 +159,6 @@ extension Odo {
         func ternaryOp() throws -> Node {
             var result: Node = try or()
             
-            ignoreNl()
-            
             while currentToken.type == .quest {
                 try eat(tp: .quest)
                 
@@ -185,16 +183,12 @@ extension Odo {
         func or() throws -> Node {
             var result = try and()
             
-            ignoreNl()
-            
             while currentToken.type == .or {
                 let op = currentToken
                 try eat(tp: currentToken.type)
                 
                 ignoreNl()
                 result = .logicOp(result, op, try and())
-                
-                ignoreNl()
             }
             
             return result
@@ -203,14 +197,11 @@ extension Odo {
         func and() throws -> Node {
             var result = try expression()
             
-            ignoreNl()
-            
             while currentToken.type == .and {
                 let op = currentToken
                 try eat(tp: currentToken.type)
                 ignoreNl()
                 result = .logicOp(result, op, try expression())
-                ignoreNl()
             }
             
             return result
@@ -219,8 +210,6 @@ extension Odo {
         func expression() throws -> Node {
             var result = try term()
             
-            ignoreNl()
-            
             while   currentToken.type == .plus ||
                     currentToken.type == .minus {
                 let op = currentToken
@@ -228,8 +217,6 @@ extension Odo {
                 
                 ignoreNl()
                 result = .arithmeticOp(result, op, try term())
-                
-                ignoreNl()
             }
             
             return result
@@ -238,8 +225,6 @@ extension Odo {
         func term() throws -> Node {
             var result = try postfix()
             
-            ignoreNl()
-            
             while   currentToken.type == .mul ||
                     currentToken.type == .div {
                 let op = currentToken
@@ -247,7 +232,6 @@ extension Odo {
                 
                 ignoreNl()
                 result = .arithmeticOp(result, op, try postfix())
-                ignoreNl()
             }
             
             return result
@@ -255,8 +239,6 @@ extension Odo {
         
         func postfix() throws -> Node {
             var result = try factor()
-            
-            ignoreNl()
             
 //            while currentToken is one of the postfixes
             
