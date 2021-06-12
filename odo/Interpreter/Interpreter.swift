@@ -62,6 +62,8 @@ extension Odo {
                 
             case .loop(let body):
                 return try loop(body: body)
+            case .while(let cond, let body):
+                return try vWhile(cond: cond, body: body)
                 
             case .noOp:
                 break
@@ -236,6 +238,19 @@ extension Odo {
         func loop(body: Node) throws -> Value {
             
             while true {
+                try visit(node: body)
+            }
+            
+            return .null
+        }
+        
+        func vWhile(cond: Node, body: Node) throws -> Value {
+            let condResult = {
+                (try self.visit(node: cond) as! BoolValue)
+                    .value
+            }
+
+            while try condResult() {
                 try visit(node: body)
             }
             

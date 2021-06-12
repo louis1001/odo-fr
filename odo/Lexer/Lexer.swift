@@ -18,7 +18,8 @@ extension Odo {
             "var": Token(type: .var),
             "if": Token(type: .if),
             
-            "loop": Token(type: .loop)
+            "loop": Token(type: .loop),
+            "while": Token(type: .while)
         ]
         
         private var code: String = ""

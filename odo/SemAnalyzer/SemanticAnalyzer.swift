@@ -50,6 +50,8 @@ extension Odo {
                 
             case .loop(let body):
                 return try loop(body: body)
+            case .while(let cond, let body):
+                return try vWhile(cond: cond, body: body)
             case .noOp:
                 return .nothing
             }
@@ -273,6 +275,18 @@ extension Odo {
         
         func loop(body: Node) throws -> NodeResult {
             try visit(node: body)
+            return .nothing
+        }
+        
+        func vWhile(cond: Node, body: Node) throws -> NodeResult {
+            let cond = try visit(node: cond)
+            
+            if cond.tp != .boolType {
+                throw OdoException.TypeError(message: "Condition expression of while statement must be boolean.")
+            }
+            
+            try visit(node: body)
+            
             return .nothing
         }
         

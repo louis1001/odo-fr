@@ -91,9 +91,15 @@ extension Odo {
     
     
     class SymbolTable {
+        enum UnwindType {
+            case `continue`
+            case `return`
+            case `break`
+        }
         
         let name: String
         var parent: SymbolTable?
+        private var unwindConditions: Set<UnwindType> = []
         
         private var symbols: Dictionary<String, Symbol> = [:]
         
@@ -125,6 +131,16 @@ extension Odo {
             symbols[sym.name] = sym
             
             return sym
+        }
+        
+        func unwinds(for tag: UnwindType) {
+            unwindConditions.insert(tag)
+        }
+        
+        func unwind(toClosest tag: UnwindType) {
+            if unwindConditions.contains(tag) {
+                
+            }
         }
 
     }

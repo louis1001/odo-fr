@@ -92,6 +92,9 @@ extension Odo {
                 try eat(tp: .curlOpen)
                 result = .loop(try block())
                 try eat(tp: .curlClose)
+            case .while:
+                try eat(tp: .while)
+                result = try whileStatement()
             default:
                 result = try ternaryOp()
             }
@@ -132,6 +135,16 @@ extension Odo {
             let condition = try ternaryOp()
             
             return condition
+        }
+        
+        func whileStatement() throws -> Node {
+            let cond = try ternaryOp()
+            
+            try eat(tp: .curlOpen)
+            let body = try block()
+            try eat(tp: .curlClose)
+            
+            return .while(cond, body)
         }
         
         func declaration(forceType: Bool = false) throws -> Node {
