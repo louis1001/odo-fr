@@ -53,9 +53,12 @@ extension Odo {
         }
         
         func block(body: [Node]) throws -> NodeResult {
+            let tempScope = currentScope
+            currentScope = SymbolTable("block_scope", parent: currentScope)
             for statement in body {
                 try visit(node: statement)
             }
+            currentScope = tempScope
             
             return .nothing
         }

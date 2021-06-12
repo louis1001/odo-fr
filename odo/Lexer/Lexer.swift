@@ -15,7 +15,8 @@ extension Odo {
             "false": Token(type: .false),
             "and": Token(type: .and),
             "or": Token(type: .or),
-            "var": Token(type: .var)
+            "var": Token(type: .var),
+            "if": Token(type: .if)
         ]
         
         private var code: String = ""
@@ -199,6 +200,12 @@ extension Odo {
             case ")":
                 advance()
                 return Token(type: .parClose)
+            case "{":
+                advance()
+                return Token(type: .curlOpen)
+            case "}":
+                advance()
+                return Token(type: .curlClose)
             default:
                 throw OdoException.InputError(line: currentLine, pos: currentColumn, character: char)
             }

@@ -25,12 +25,13 @@ extension Odo {
             
             case identifier
             
-            // Keywords
+            // MARK: Keywords
             // Should I be naming them after keywords?
             // Sure. why not? FIXME
             case `true`
             case `false`
             case `var`
+            case `if`
             
             // Punctuation
             case colon
@@ -38,6 +39,8 @@ extension Odo {
             case quest
             case parOpen
             case parClose
+            case curlOpen
+            case curlClose
             
             case assignment
             

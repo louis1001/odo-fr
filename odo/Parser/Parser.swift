@@ -40,7 +40,9 @@ extension Odo {
             if currentToken.type == .semiColon {
                 try eat(tp: .semiColon)
                 ignoreNl()
-            } else if currentToken.type != .eof {
+            } else if currentToken.type != .eof &&
+                        currentToken.type != .curlClose &&
+                        currentToken.type != .parClose {
                 // if it's not any of the other terminators
                 try eat(tp: .newLine)
                 ignoreNl()
@@ -65,7 +67,7 @@ extension Odo {
             
             ignoreNl()
             
-            while currentToken.type != .eof {
+            while currentToken.type != .eof && currentToken.type != .curlClose {
                 result.append(try statement())
             }
             
@@ -78,6 +80,13 @@ extension Odo {
             case .var:
                 try eat(tp: .var)
                 result = try declaration()
+            case .if:
+                try eat(tp: .if)
+                result = try ifStatement()
+            case .curlOpen:
+                try eat(tp: .curlOpen)
+                result = try block()
+                try eat(tp: .curlClose)
             default:
                 result = try ternaryOp()
             }
@@ -112,6 +121,12 @@ extension Odo {
             // make tp a index node
             
             return tp
+        }
+        
+        func ifStatement() throws -> Node {
+            let condition = try ternaryOp()
+            
+            return condition
         }
         
         func declaration(forceType: Bool = false) throws -> Node {
