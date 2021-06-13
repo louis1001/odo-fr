@@ -193,7 +193,21 @@ extension Odo {
                 return Token(type: .colon)
             case "=":
                 advance()
-                return Token(type: .assignment)
+                
+                switch currentChar {
+                case "=":
+                    advance()
+                    return Token(type: .equals)
+                default:
+                    return Token(type: .assignment)
+                }
+            case "!":
+                advance()
+                if currentChar == "=" {
+                    advance()
+                    return Token(type: .notEquals)
+                }
+                throw OdoException.InputError(line: currentLine, pos: currentColumn, character: "!")
             case "?":
                 advance()
                 return Token(type: .quest)

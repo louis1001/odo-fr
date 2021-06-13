@@ -49,6 +49,10 @@ extension Odo {
                 return try aritmeticOp(lhs: lhs, op: op, rhs: rhs)
             case .logicOp(let lhs, let op, let rhs):
                 return try logicOp(lhs: lhs, op: op, rhs: rhs)
+            case .equalityOp(let lhs, let op, let rhs):
+                return try equalityOp(lhs: lhs, op: op, rhs: rhs)
+            case .ternaryOp(let condition, let trueCase, let falseCase):
+                return try ternaryOp(condition: condition, true: trueCase, false: falseCase)
                 
             case .assignment(let lhs, let val):
                 return try assignment(to: lhs, val: val)
@@ -56,9 +60,6 @@ extension Odo {
                 return try variable(name: name)
             case .varDeclaration(let tp, let name, let initial):
                 return try varDeclaration(tp: tp, name: name, initial: initial)
-                
-            case .ternaryOp(let condition, let trueCase, let falseCase):
-                return try ternaryOp(condition: condition, true: trueCase, false: falseCase)
                 
             case .loop(let body):
                 return try loop(body: body)
@@ -157,6 +158,44 @@ extension Odo {
             }
         }
         
+        func equalityOp(lhs: Node, op: Token, rhs: Node) throws -> Value {
+            let lhs = try visit(node: lhs)
+            let rhs = try visit(node: rhs)
+            
+            var result: Bool = false
+            
+            // If they point to the same value instance, they are the same
+            if lhs === rhs { result = true }
+            
+            // Since previous is false, any of the two being null means they are not the same
+            else if lhs === Value.null || rhs === Value.null { result = false }
+            
+            // If one is primitive, both are
+            // SemAn guaranteed
+            else if let lhs = lhs as? PrimitiveValue,
+               let rhs = rhs as? PrimitiveValue {
+                
+                if lhs.isNumeric {
+                    result = lhs.asDouble()! == rhs.asDouble()!
+                } else if lhs.type == .boolType {
+                    result = lhs.asBool()! == rhs.asBool()!
+                } else if lhs.type == .textType {
+                    result = lhs.asText()! == rhs.asText()!
+                }
+            }
+            
+            switch op.type {
+            case .equals:
+                break
+            case .notEquals:
+                result.toggle()
+            default:
+                fatalError("Internal: Invalid equality operation \(op) in the AST")
+            }
+            
+            return BoolValue(value: result)
+        }
+        
         func assignment(to lhs: Node, val: Node) throws -> Value {
             let varSym = try getSymbolFromNode(lhs) as! VarSymbol
             var newValue = try visit(node: val)
@@ -164,6 +203,15 @@ extension Odo {
             if let _ = varSym.value {
                 // If oldValue is copyable
                 // Copy
+                
+                // Cast numeric value
+                if varSym.type == .intType && newValue.type == .doubleType {
+                    let internalValue = (newValue as! DoubleValue).asDouble()!
+                    newValue = IntValue(value: Int(internalValue))
+                } else if varSym.type == .doubleType && newValue.type == .intType {
+                    let internalValue = (newValue as! IntValue).asDouble()!
+                    newValue = DoubleValue(value: internalValue)
+                }
             } else {
                 // If newValue is copyable
                 // Copy

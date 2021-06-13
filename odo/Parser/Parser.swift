@@ -213,13 +213,27 @@ extension Odo {
         }
         
         func and() throws -> Node {
-            var result = try expression()
+            var result = try equality()
             
             while currentToken.type == .and {
                 let op = currentToken
                 try eat(tp: currentToken.type)
                 ignoreNl()
-                result = .logicOp(result, op, try expression())
+                result = .logicOp(result, op, try equality())
+            }
+            
+            return result
+        }
+        
+        func equality() throws -> Node {
+            var result = try expression()
+            
+            while currentToken.type == .equals ||
+                  currentToken.type == .notEquals {
+                let op = currentToken
+                try eat(tp: currentToken.type)
+                ignoreNl()
+                result = .equalityOp(result, op, try expression())
             }
             
             return result
@@ -261,6 +275,12 @@ extension Odo {
 //            while currentToken is one of the postfixes
             
             if currentToken.type == .assignment {
+                switch result {
+                case .variable(_):
+                    break
+                default:
+                    throw OdoException.SyntaxError(message: "Invalid assignment to non-variable")
+                }
                 try eat(tp: .assignment)
                 result = .assignment(result, try ternaryOp())
             }

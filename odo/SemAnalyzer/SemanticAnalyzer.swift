@@ -37,6 +37,10 @@ extension Odo {
                 return try arithmeticOp(lhs: lhs, op: op,rhs: rhs)
             case .logicOp(let lhs, let op, let rhs):
                 return try logicOp(lhs: lhs, op: op,rhs: rhs)
+            case .equalityOp(let lhs, let op, let rhs):
+                return try equalityOp(lhs: lhs, op: op, rhs: rhs)
+            case .ternaryOp(let condition, let trueCase, let falseCase):
+                return try ternaryOp(condition: condition, true: trueCase, false: falseCase)
 
             case .assignment(let lhs, let val):
                 return try assignment(to: lhs, val: val)
@@ -44,9 +48,6 @@ extension Odo {
                 return try variable(name: name)
             case .varDeclaration(let tp, let name, let initial):
                 return try varDeclaration(tp: tp, name: name, initial: initial)
-                
-            case .ternaryOp(let condition, let trueCase, let falseCase):
-                return try ternaryOp(condition: condition, true: trueCase, false: falseCase)
                 
             case .loop(let body):
                 return try loop(body: body)
@@ -137,6 +138,31 @@ extension Odo {
                 break
             default:
                 throw OdoException.SemanticError(message: "Invalid logic operator `\(op)`")
+            }
+            
+            return NodeResult(tp: .boolType)
+        }
+        
+        func equalityOp(lhs: Node, op: Token, rhs: Node) throws -> NodeResult {
+            switch op.type {
+            case .equals, .notEquals:
+                break
+            default:
+                throw OdoException.SemanticError(message: "Internal. Invalid operator \(op) for equality expression")
+            }
+            
+            let lhs = try visit(node: lhs)
+            guard lhs.tp != nil else {
+                throw OdoException.ValueError(message: "Left operand in equality operator \(op) must return a value.")
+            }
+            let rhs = try visit(node: rhs)
+            guard rhs.tp != nil else {
+                throw OdoException.ValueError(message: "Right operand in equality operator \(op) must return a value.")
+            }
+            
+            if !counts(type: lhs.tp!, as: rhs.tp!) || !counts(type: rhs.tp!, as: lhs.tp!) {
+                throw OdoException.TypeError(
+                    message: "Invalid equality operation `\(op)`. Value have incompatible types `\(lhs.tp!)` and `\(rhs.tp!)`")
             }
             
             return NodeResult(tp: .boolType)

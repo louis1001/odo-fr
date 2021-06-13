@@ -20,6 +20,9 @@ extension Odo {
             case mul
             case div
             
+            case equals
+            case notEquals
+            
             case and
             case or
             

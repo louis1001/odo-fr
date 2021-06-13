@@ -51,6 +51,8 @@ extension Odo {
         final var isBool   : Bool { self is BoolValue }
         
         func asDouble() -> Double? { return nil }
+        func asBool() -> Bool? { return nil }
+        func asText() -> String? { return nil }
     }
     
     fileprivate class NullValue : PrimitiveValue {
@@ -115,6 +117,10 @@ extension Odo {
             type = .textType
         }
         
+        override final func asText() -> String? {
+            return value
+        }
+        
         public override var description: String {
             "\(value)"
         }
@@ -129,6 +135,10 @@ extension Odo {
             super.init()
 
             type = .boolType
+        }
+        
+        override final func asBool() -> Bool? {
+            return value
         }
         
         public override var description: String {

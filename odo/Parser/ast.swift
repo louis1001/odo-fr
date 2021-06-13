@@ -20,12 +20,13 @@ extension Odo {
         
         case arithmeticOp(Node, Token, Node)
         case logicOp(Node, Token, Node)
+        case equalityOp(Node, Token, Node)
+        
+        case ternaryOp(Node, Node, Node)
         
         case variable(Token)
         case varDeclaration(Node, Token, Node)
         case assignment(Node, Node)
-        
-        case ternaryOp(Node, Node, Node)
         
         case loop(Node)
         case `while`(Node, Node)
