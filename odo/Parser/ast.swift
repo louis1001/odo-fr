@@ -30,6 +30,7 @@ extension Odo {
         
         case loop(Node)
         case `while`(Node, Node)
+        case forange (Token?, Node, Node?, Node, Bool)
         
         case noOp
         

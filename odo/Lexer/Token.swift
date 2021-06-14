@@ -37,10 +37,13 @@ extension Odo {
             case `if`
             case loop
             case `while`
+            case forange
             
             // Punctuation
             case colon
             case semiColon
+            case comma
+            case tilde
             case quest
             case parOpen
             case parClose
@@ -51,6 +54,7 @@ extension Odo {
             
             case newLine
 
+            case nothing
             case eof
         }
         

@@ -65,6 +65,8 @@ extension Odo {
                 return try loop(body: body)
             case .while(let cond, let body):
                 return try vWhile(cond: cond, body: body)
+            case .forange(let id, let first, let second, let body, let rev):
+                return try forange(id: id, first: first, second: second, body: body, rev: rev)
                 
             case .noOp:
                 break
@@ -301,6 +303,63 @@ extension Odo {
             while try condResult() {
                 try visit(node: body)
             }
+            
+            return .null
+        }
+        
+        func forange(id: Token?, first: Node, second: Node?, body: Node, rev: Bool) throws -> Value {
+            let forangeScope = SymbolTable("forange:loop", parent: currentScope)
+            currentScope = forangeScope
+            
+            let first = (try visit(node: first) as! PrimitiveValue)
+            
+            let lowerBound: Int
+            let upperBound: Int
+            
+            if let second = second {
+                lowerBound = Int(first.asDouble()!)
+
+                let second = (try visit(node: second) as! PrimitiveValue)
+                upperBound = Int(second.asDouble()!)
+            } else {
+                lowerBound = 0
+                upperBound = Int(first.asDouble()!)
+            }
+            
+            let withIdentifier = id != nil
+            
+            let iterValue: IntValue!
+            
+            if withIdentifier {
+                let _ = try varDeclaration(
+                    tp: .variable(Token(type: .identifier, lexeme: "int")),
+                    name: id!,
+                    initial: .noOp
+                )
+
+                let iterId = currentScope[id!.lexeme, false]! as! VarSymbol
+                iterValue = IntValue(value: 0)
+                iterId.value = iterValue
+                iterId.isInitialized = true
+            } else {
+                iterValue = nil
+            }
+            
+            for i in lowerBound..<upperBound {
+                
+                if withIdentifier {
+                    var actualValue = i
+                    if rev { actualValue = lowerBound + upperBound - 1 - i }
+                    
+                    iterValue.value = actualValue
+                }
+                
+                try visit(node: body)
+                
+                // TODO: Handle unwinding
+            }
+            
+            currentScope = forangeScope.parent!
             
             return .null
         }

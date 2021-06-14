@@ -95,6 +95,9 @@ extension Odo {
             case .while:
                 try eat(tp: .while)
                 result = try whileStatement()
+            case .forange:
+                try eat(tp: .forange)
+                result = try forangeStatement()
             default:
                 result = try ternaryOp()
             }
@@ -145,6 +148,52 @@ extension Odo {
             try eat(tp: .curlClose)
             
             return .while(cond, body)
+        }
+        
+        func forangeStatement() throws -> Node {
+            let hasParents = currentToken.type == .parOpen
+            
+            ignoreNl()
+            if hasParents {
+                try eat(tp: .parOpen)
+                ignoreNl()
+            }
+            
+            var id: Token?
+            if currentToken.type == .identifier {
+                id = currentToken
+                try! eat(tp: .identifier)
+            }
+            
+            ignoreNl()
+            
+            var isReversed = currentToken.type == .tilde
+            if isReversed {
+                try eat(tp: .tilde)
+                ignoreNl()
+            }
+            
+            try eat(tp: .colon)
+            ignoreNl()
+            
+            let firstExpr = try ternaryOp()
+            var secondExpr: Node?
+            
+            if currentToken.type == .comma {
+                try eat(tp: .comma)
+                ignoreNl()
+                secondExpr = try ternaryOp()
+            }
+            
+            if hasParents {
+                ignoreNl()
+                try eat(tp: .parClose)
+                ignoreNl()
+            }
+            
+            let body = try statement(withTerm: false)
+            
+            return .forange(id, firstExpr, secondExpr, body, isReversed)
         }
         
         func declaration(forceType: Bool = false) throws -> Node {

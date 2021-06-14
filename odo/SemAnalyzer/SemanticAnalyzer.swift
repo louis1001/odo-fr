@@ -53,6 +53,8 @@ extension Odo {
                 return try loop(body: body)
             case .while(let cond, let body):
                 return try vWhile(cond: cond, body: body)
+            case .forange(let id, let first, let second, let body, let rev):
+                return try forange(id: id, first: first, second: second, body: body, rev: rev)
             case .noOp:
                 return .nothing
             }
@@ -312,6 +314,47 @@ extension Odo {
             }
             
             try visit(node: body)
+            
+            return .nothing
+        }
+        
+        func forange(id: Token?, first: Node, second: Node?, body: Node, rev: Bool) throws -> NodeResult {
+            let forangeScope = SymbolTable("forange:loop", parent: currentScope)
+            currentScope = forangeScope
+            
+            let first = try visit(node: first)
+            guard first.tp != nil else {
+                throw OdoException.ValueError(message: "Range value in `forange` must have a type (provide value).")
+            }
+            
+            guard first.tp!.isNumeric else {
+                throw OdoException.TypeError(message: "Values defining the range of forange statement have to be numerical")
+            }
+            
+            if let second = second {
+                let second = try visit(node: second)
+                guard second.tp != nil else {
+                    throw OdoException.ValueError(message: "Range value in `forange` must have a type (provide value).")
+                }
+                
+                guard second.tp!.isNumeric else {
+                    throw OdoException.TypeError(message: "Values defining the range of forange statement have to be numerical")
+                }
+            }
+            
+            if let usingId = id {
+                let _ = try varDeclaration(
+                    tp: .variable(Token(type: .identifier, lexeme: "int")),
+                    name: usingId,
+                    initial: .noOp
+                )
+
+                currentScope[usingId.lexeme, false]!.isInitialized = true
+            }
+            
+            try visit(node: body)
+            
+            currentScope = forangeScope.parent!
             
             return .nothing
         }

@@ -19,7 +19,8 @@ extension Odo {
             "if": Token(type: .if),
             
             "loop": Token(type: .loop),
-            "while": Token(type: .while)
+            "while": Token(type: .while),
+            "forange": Token(type: .forange)
         ]
         
         private var code: String = ""
@@ -191,6 +192,12 @@ extension Odo {
             case ":":
                 advance()
                 return Token(type: .colon)
+            case ",":
+                advance()
+                return Token(type: .comma)
+            case "~":
+                advance()
+                return Token(type: .tilde)
             case "=":
                 advance()
                 
