@@ -43,18 +43,18 @@ extension Odo {
         }
         
         // Builtin types
-        static let anyType      = PrimitiveTypeSymbol(name: "any")
-        static let nullType     = PrimitiveTypeSymbol(name: "$nullType", type: .anyType)
-        static let boolType     = PrimitiveTypeSymbol(name: "bool", type: .anyType)
-        static let textType   = PrimitiveTypeSymbol(name: "text", type: .anyType)
+        public static let anyType      = PrimitiveTypeSymbol(name: "any")
+        public static let nullType     = PrimitiveTypeSymbol(name: "$nullType", type: .anyType)
+        public static let boolType     = PrimitiveTypeSymbol(name: "bool", type: .anyType)
+        public static let textType     = PrimitiveTypeSymbol(name: "text", type: .anyType)
         
-        static let intType: PrimitiveTypeSymbol     = {
+        public static let intType: PrimitiveTypeSymbol     = {
             let val = PrimitiveTypeSymbol(name: "int", type: .anyType)
             val.isNumeric = true
             return val
         }()
 
-        static let doubleType: PrimitiveTypeSymbol  = {
+        public static let doubleType: PrimitiveTypeSymbol  = {
             let val = PrimitiveTypeSymbol(name: "double", type: .anyType)
             val.isNumeric = true
             return val
@@ -72,7 +72,7 @@ extension Odo {
         }
     }
     
-    class PrimitiveTypeSymbol: TypeSymbol {
+    public class PrimitiveTypeSymbol: TypeSymbol {
         override var isPrimitive: Bool { true }
         override init(name: String, type tp: TypeSymbol? = nil) {
             super.init(name: name, type: tp)
@@ -115,7 +115,14 @@ extension Odo {
     }
     
     public class NativeFunctionSymbol : Symbol {
-        public typealias NativeFunctionValidation = ([Node], SemanticAnalyzer) -> Result<TypeSymbol?, OdoException>
+        public enum ArgType {
+            case none
+            case any
+            case some(UInt)
+            case someOrLess(UInt)
+        }
+
+        public typealias NativeFunctionValidation = ([Node], SemanticAnalyzer) throws -> Result<TypeSymbol?, OdoException>
         
         var body: NativeFunctionValue?
         
@@ -123,8 +130,11 @@ extension Odo {
             .success(nil)
         }
         
-        init(name: String, validation: NativeFunctionValidation?) {
+        var argCount: ArgType
+        
+        init(name: String, takes args: ArgType = .none, validation: NativeFunctionValidation?) {
             if let validation = validation { semanticTest = validation }
+            argCount = args
             super.init(name: name, type: NativeFunctionTypeSymbol.shared)
         }
     }

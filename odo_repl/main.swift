@@ -14,12 +14,6 @@ inter.addNativeFunction("exit") {_, _ in
     running = false
     return .null
 }
-validation: { args, _ in
-    guard args.isEmpty else {
-        return .failure(.RuntimeError(message: "Function exit takes no arguments"))
-    }
-    return .success(nil)
-}
 
 while running {
     print("> ", terminator: "")

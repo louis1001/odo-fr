@@ -4,6 +4,7 @@
 //
 //  Created by Luis Gonzalez on 29/5/21.
 //
+import Foundation
 
 extension Odo {
     public class Interpreter {
@@ -29,20 +30,41 @@ extension Odo {
             replScope = SymbolTable("repl", parent: globalTable)
             replScope.addSymbol(VarSymbol(name: "_", type: .anyType))
             
-            addNativeFunction("write") { values, _ in
-                print("hey")
+            addNativeFunction("write", takes: .any) { values, _ in
                 for val in values {
                     print(val.toText(), terminator: "")
                 }
                 return .null
             }
             
-            addNativeFunction("writeln") { values, _ in
+            addNativeFunction("writeln", takes: .any) { values, _ in
                 for val in values {
                     print(val.toText(), terminator: "")
                 }
                 print()
                 return .null
+            }
+            
+            addNativeFunction("pow", takes: .someOrLess(2)) { args, _ in
+                let arg1 = (args.first! as! PrimitiveValue).asDouble()!
+                let power: Double
+                
+                if args.count > 1 {
+                    power = (args[1] as! PrimitiveValue).asDouble()!
+                } else {
+                    power = 2
+                }
+
+                return DoubleValue(value: pow(arg1, power))
+            } validation: { args, semAn in
+                if let err = try semAn.validate(arg: args.first!, type: .doubleType) {
+                    return .failure(err)
+                }
+
+                if args.count > 1, let err = try semAn.validate(arg: args[1], type: .doubleType) {
+                    return .failure(err)
+                }
+                return .success(.doubleType)
             }
         }
         
@@ -56,10 +78,11 @@ extension Odo {
         ///   Preferably gives static return type for all calls.
         public func addNativeFunction(
             _ name: String,
+            takes args: NativeFunctionSymbol.ArgType = .none,
             body: @escaping ([Value], Interpreter) throws -> Value,
-            validation: (([Node], SemanticAnalyzer) -> Result<TypeSymbol?, OdoException>)? = nil) {
+            validation: (([Node], SemanticAnalyzer) throws -> Result<TypeSymbol?, OdoException>)? = nil) {
             
-            let functionSymbol = NativeFunctionSymbol(name: name, validation: validation)
+            let functionSymbol = NativeFunctionSymbol(name: name, takes: args, validation: validation)
             globalTable.addSymbol(functionSymbol)
             
             let functionValue = NativeFunctionValue(body: body)

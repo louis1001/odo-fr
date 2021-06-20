@@ -286,7 +286,30 @@ extension Odo {
             
             switch function {
             case let native as NativeFunctionSymbol:
-                let result = native.semanticTest(args, self)
+                switch native.argCount {
+                case .none:
+                    guard args.isEmpty else {
+                        throw OdoException.ValueError(
+                            message: "Function `\(native.name)` takes no arguments."
+                        )
+                    }
+                case .any:
+                    break
+                case .some(let x):
+                    guard args.count == x else {
+                        throw OdoException.ValueError(
+                            message: "Function `\(native.name)` takes `\(x)` arguments."
+                        )
+                    }
+                case .someOrLess(let x):
+                    guard args.count <= x else {
+                        throw OdoException.ValueError(
+                            message: "Function `\(native.name)` takes `\(x)` arguments or less."
+                        )
+                    }
+                }
+                
+                let result = try native.semanticTest(args, self)
                 switch result {
                 case .success(let tp):
                     return NodeResult(tp: tp)
@@ -398,6 +421,16 @@ extension Odo {
             }
 
             return Symbol(name: "", type: .anyType)
+        }
+        
+        public func validate(arg: Node, type: TypeSymbol) throws -> OdoException? {
+            let argument = try visit(node: arg)
+
+            guard let argType = argument.tp, counts(type: argType, as: type) else {
+                return .TypeError(message: "Function takes an argument of type `\(type.name)`.")
+            }
+
+            return nil
         }
         
         func counts(type left: TypeSymbol, as right: TypeSymbol) -> Bool {
