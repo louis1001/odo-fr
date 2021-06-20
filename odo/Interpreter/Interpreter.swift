@@ -28,6 +28,42 @@ extension Odo {
             
             replScope = SymbolTable("repl", parent: globalTable)
             replScope.addSymbol(VarSymbol(name: "_", type: .anyType))
+            
+            addNativeFunction("write") { values, _ in
+                print("hey")
+                for val in values {
+                    print(val.toText(), terminator: "")
+                }
+                return .null
+            }
+            
+            addNativeFunction("writeln") { values, _ in
+                for val in values {
+                    print(val.toText(), terminator: "")
+                }
+                print()
+                return .null
+            }
+        }
+        
+        /// Create a function accessible from runtime Odo code
+        /// that executes native swift. You should make sure that yout validation
+        /// is as thourough as possible.
+        /// - Parameters:
+        ///   - name: The name of the symbol from which this function can be accessed
+        ///   - body: The closure that is executed. It takes it's arguments as [Value]
+        ///   - validation: The semantic validation of arguments and return type, recieves the list of Node and the Semantic analyzer.
+        ///   Preferably gives static return type for all calls.
+        public func addNativeFunction(
+            _ name: String,
+            body: @escaping ([Value], Interpreter) throws -> Value,
+            validation: (([Node], SemanticAnalyzer) -> Result<TypeSymbol?, OdoException>)? = nil) {
+            
+            let functionSymbol = NativeFunctionSymbol(name: name, validation: validation)
+            globalTable.addSymbol(functionSymbol)
+            
+            let functionValue = NativeFunctionValue(body: body)
+            functionSymbol.body = functionValue
         }
         
         @discardableResult
@@ -60,6 +96,9 @@ extension Odo {
                 return try variable(name: name)
             case .varDeclaration(let tp, let name, let initial):
                 return try varDeclaration(tp: tp, name: name, initial: initial)
+                
+            case .functionCall(let expr, let name, let args):
+                return try functionCall(expr: expr, name: name, args: args)
                 
             case .loop(let body):
                 return try loop(body: body)
@@ -237,9 +276,18 @@ extension Odo {
         }
         
         func variable(name: Token) throws -> Value {
-            let symbol = currentScope[name.lexeme] as! VarSymbol
+            let symbol = currentScope[name.lexeme]
             
-            return symbol.value!
+            switch symbol {
+            case let varSymbol as VarSymbol:
+                return varSymbol.value!
+            case let nativeFuncSymbol as NativeFunctionSymbol:
+                return nativeFuncSymbol.body!
+            default:
+                break
+            }
+            
+            throw OdoException.NameError(message: "Invalid identifier `\(name.lexeme!)`")
         }
         
         func varDeclaration(tp: Node, name: Token, initial: Node) throws -> Value {
@@ -283,6 +331,21 @@ extension Odo {
             } else {
                 return rightSide
             }
+        }
+        
+        func functionCall(expr: Node, name: Token?, args: [Node]) throws -> Value {
+            let function = try visit(node: expr) as! FunctionValue
+            
+            switch function {
+            case let native as NativeFunctionValue:
+                let args = try args.map { node in try self.visit(node: node) }
+                
+                return try native.functionBody(args, self)
+            default:
+                break
+            }
+            
+            return .null
         }
         
         func loop(body: Node) throws -> Value {

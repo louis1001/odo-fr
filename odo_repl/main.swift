@@ -8,15 +8,22 @@
 import odo
 
 let inter = Odo.Interpreter()
+var running = true
 
-while true {
+inter.addNativeFunction("exit") {_, _ in
+    running = false
+    return .null
+}
+validation: { args, _ in
+    guard args.isEmpty else {
+        return .failure(.RuntimeError(message: "Function exit takes no arguments"))
+    }
+    return .success(nil)
+}
+
+while running {
     print("> ", terminator: "")
     guard let val = readLine() else {
-        break
-    }
-    
-    if val == "exit()" {
-        print("Bye")
         break
     }
     
@@ -28,5 +35,5 @@ while true {
     } catch let err as Odo.OdoException {
         print(err.description())
     }
-    
+
 }

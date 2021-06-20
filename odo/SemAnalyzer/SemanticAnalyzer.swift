@@ -6,7 +6,7 @@
 //
 
 extension Odo {
-    class SemanticAnalyzer {
+    public class SemanticAnalyzer {
         let interpreter: Interpreter
         let globalScope: SymbolTable
         let replScope: SymbolTable
@@ -48,6 +48,9 @@ extension Odo {
                 return try variable(name: name)
             case .varDeclaration(let tp, let name, let initial):
                 return try varDeclaration(tp: tp, name: name, initial: initial)
+                
+            case .functionCall(let expr, let name, let args):
+                return try functionCall(expr: expr, name: name, args: args)
                 
             case .loop(let body):
                 return try loop(body: body)
@@ -270,6 +273,31 @@ extension Odo {
             }
             
             currentScope.addSymbol(newVar)
+            
+            return .nothing
+        }
+        
+        func functionCall(expr: Node, name: Token?, args: [Node]) throws -> NodeResult {
+            let function = try getSymbolFromNode(expr)
+            
+            guard let _ = function?.type as? FunctionTypeSymbol else {
+                throw OdoException.TypeError(message: "Invalid function call. Value of type `\(function?.name ?? "")` is not a function.")
+            }
+            
+            switch function {
+            case let native as NativeFunctionSymbol:
+                let result = native.semanticTest(args, self)
+                switch result {
+                case .success(let tp):
+                    return NodeResult(tp: tp)
+                case .failure(let except):
+                    throw except
+                }
+//            case let scripted as ScriptFunctionSymbol:
+//                break
+            default:
+                break
+            }
             
             return .nothing
         }

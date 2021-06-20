@@ -7,7 +7,7 @@
 import Foundation
 
 extension Odo {
-    indirect enum Node {
+    public indirect enum Node {
         case int(Token)
         case double(Token)
         case text(Token)
@@ -27,6 +27,8 @@ extension Odo {
         case variable(Token)
         case varDeclaration(Node, Token, Node)
         case assignment(Node, Node)
+        
+        case functionCall(Node, Token?, [Node])
         
         case loop(Node)
         case `while`(Node, Node)

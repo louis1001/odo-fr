@@ -8,13 +8,13 @@
 import Foundation
 
 extension Odo {
-    class Symbol: Equatable, Hashable {
+    public class Symbol: Equatable, Hashable {
         let id = UUID()
-        static func == (lhs: Odo.Symbol, rhs: Odo.Symbol) -> Bool {
+        public static func == (lhs: Odo.Symbol, rhs: Odo.Symbol) -> Bool {
             return lhs.id == rhs.id
         }
         
-        func hash(into hasher: inout Hasher) {
+        public func hash(into hasher: inout Hasher) {
             hasher.combine(id)
         }
         
@@ -61,7 +61,7 @@ extension Odo {
         }()
     }
 
-    class TypeSymbol: Symbol {
+    public class TypeSymbol: Symbol {
         override var isType: Bool { true }
         var isPrimitive: Bool { false }
         
@@ -76,6 +76,56 @@ extension Odo {
         override var isPrimitive: Bool { true }
         override init(name: String, type tp: TypeSymbol? = nil) {
             super.init(name: name, type: tp)
+        }
+    }
+    
+    class FunctionTypeSymbol: TypeSymbol {
+        class func constructFunctionName(ret: TypeSymbol?, params: [(TypeSymbol, Bool)]) -> String {
+            var result = "<"
+            
+            for (tp, optional) in params {
+                result += tp.name + (optional ? "?" : "")
+            }
+            
+            result += ":"
+            
+            if let returns = ret {
+                result += returns.name
+            }
+            
+            result += ">"
+            
+            return result
+        }
+        
+        fileprivate override init(name: String, type tp: TypeSymbol? = nil) {
+            super.init(name: name, type: tp)
+        }
+    }
+    
+    class ScriptFunctionTypeSymbol : FunctionTypeSymbol {
+        init(ret: TypeSymbol?, params: [(TypeSymbol, Bool)]) {
+            let name = FunctionTypeSymbol.constructFunctionName(ret: ret, params: params)
+            super.init(name: name, type: ret)
+        }
+    }
+    
+    class NativeFunctionTypeSymbol : FunctionTypeSymbol {
+        static let shared = NativeFunctionTypeSymbol(name: "native_function")
+    }
+    
+    public class NativeFunctionSymbol : Symbol {
+        public typealias NativeFunctionValidation = ([Node], SemanticAnalyzer) -> Result<TypeSymbol?, OdoException>
+        
+        var body: NativeFunctionValue?
+        
+        var semanticTest: NativeFunctionValidation = {_, _ in
+            .success(nil)
+        }
+        
+        init(name: String, validation: NativeFunctionValidation?) {
+            if let validation = validation { semanticTest = validation }
+            super.init(name: name, type: NativeFunctionTypeSymbol.shared)
         }
     }
     

@@ -12,6 +12,10 @@ extension Odo {
         public let id = UUID()
         final var type: TypeSymbol!
         var isPrimitive: Bool { false }
+        
+        var address: UnsafeMutableRawPointer {
+            Unmanaged.passUnretained(self).toOpaque()
+        }
 
         public static let null: PrimitiveValue = NullValue()
         
@@ -32,7 +36,7 @@ extension Odo {
         }
         
         public var description: String {
-            "<value at:\(id)>"
+            "<value at:\(address)>"
         }
 
         public func toText() -> String {
@@ -143,6 +147,29 @@ extension Odo {
         
         public override var description: String {
             "\(value)"
+        }
+    }
+    
+    public class FunctionValue : Value {
+        fileprivate override init() {
+            super.init()
+        }
+    }
+    
+    public class NativeFunctionValue : FunctionValue {
+        public typealias NativeFunctionCallback = ([Value], Interpreter) throws -> Value
+
+        var functionBody: NativeFunctionCallback = { _, _ in
+            .null
+        }
+        
+        init(type: NativeFunctionTypeSymbol = .shared, body: NativeFunctionCallback? = nil) {
+            super.init()
+            self.type = type
+            
+            if let body = body {
+                functionBody = body
+            }
         }
     }
 }

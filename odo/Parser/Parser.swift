@@ -196,6 +196,21 @@ extension Odo {
             return .forange(id, firstExpr, secondExpr, body, isReversed)
         }
         
+        func callArgs() throws -> [Node] {
+            var argsList: [Node] = []
+            
+            while currentToken.type != .parClose {
+                argsList.append(try ternaryOp())
+                ignoreNl()
+                if currentToken.type != .parClose {
+                    try eat(tp: .comma)
+                    ignoreNl()
+                }
+            }
+
+            return argsList
+        }
+        
         func declaration(forceType: Bool = false) throws -> Node {
             // Refactor. var or let syntax instead of c-like
             let name = currentToken
@@ -322,6 +337,13 @@ extension Odo {
             var result = try factor()
             
 //            while currentToken is one of the postfixes
+            while currentToken.type == .parOpen {
+                try eat(tp: .parOpen)
+                let args = try callArgs()
+                ignoreNl()
+                try eat(tp: .parClose)
+                result = .functionCall(result, nil, args)
+            }
             
             if currentToken.type == .assignment {
                 switch result {
