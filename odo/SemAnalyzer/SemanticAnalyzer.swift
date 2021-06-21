@@ -310,12 +310,8 @@ extension Odo {
                 }
                 
                 let result = try native.semanticTest(args, self)
-                switch result {
-                case .success(let tp):
-                    return NodeResult(tp: tp)
-                case .failure(let except):
-                    throw except
-                }
+                
+                return NodeResult(tp: result)
 //            case let scripted as ScriptFunctionSymbol:
 //                break
             default:
@@ -423,14 +419,12 @@ extension Odo {
             return Symbol(name: "", type: .anyType)
         }
         
-        public func validate(arg: Node, type: TypeSymbol) throws -> OdoException? {
+        public func validate(arg: Node, type: TypeSymbol) throws {
             let argument = try visit(node: arg)
 
             guard let argType = argument.tp, counts(type: argType, as: type) else {
-                return .TypeError(message: "Function takes an argument of type `\(type.name)`.")
+                throw OdoException.TypeError(message: "Function takes an argument of type `\(type.name)`.")
             }
-
-            return nil
         }
         
         func counts(type left: TypeSymbol, as right: TypeSymbol) -> Bool {

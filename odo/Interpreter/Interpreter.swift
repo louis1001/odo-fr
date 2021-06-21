@@ -57,14 +57,12 @@ extension Odo {
 
                 return DoubleValue(value: pow(arg1, power))
             } validation: { args, semAn in
-                if let err = try semAn.validate(arg: args.first!, type: .doubleType) {
-                    return .failure(err)
-                }
+                try semAn.validate(arg: args.first!, type: .doubleType)
 
-                if args.count > 1, let err = try semAn.validate(arg: args[1], type: .doubleType) {
-                    return .failure(err)
+                if args.count > 1 {
+                    try semAn.validate(arg: args[1], type: .doubleType)
                 }
-                return .success(.doubleType)
+                return .doubleType
             }
         }
         
@@ -80,7 +78,7 @@ extension Odo {
             _ name: String,
             takes args: NativeFunctionSymbol.ArgType = .none,
             body: @escaping ([Value], Interpreter) throws -> Value,
-            validation: (([Node], SemanticAnalyzer) throws -> Result<TypeSymbol?, OdoException>)? = nil) {
+            validation: (([Node], SemanticAnalyzer) throws -> TypeSymbol?)? = nil) {
             
             let functionSymbol = NativeFunctionSymbol(name: name, takes: args, validation: validation)
             globalTable.addSymbol(functionSymbol)

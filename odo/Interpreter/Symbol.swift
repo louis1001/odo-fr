@@ -122,12 +122,12 @@ extension Odo {
             case someOrLess(UInt)
         }
 
-        public typealias NativeFunctionValidation = ([Node], SemanticAnalyzer) throws -> Result<TypeSymbol?, OdoException>
+        public typealias NativeFunctionValidation = ([Node], SemanticAnalyzer) throws -> TypeSymbol?
         
         var body: NativeFunctionValue?
         
         var semanticTest: NativeFunctionValidation = {_, _ in
-            .success(nil)
+            nil
         }
         
         var argCount: ArgType
