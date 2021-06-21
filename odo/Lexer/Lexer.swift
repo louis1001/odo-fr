@@ -17,6 +17,7 @@ extension Odo {
             "or": Token(type: .or),
             "var": Token(type: .var),
             "if": Token(type: .if),
+            "else": Token(type: .else),
             
             "loop": Token(type: .loop),
             "while": Token(type: .while),

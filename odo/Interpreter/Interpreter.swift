@@ -121,6 +121,9 @@ extension Odo {
             case .functionCall(let expr, let name, let args):
                 return try functionCall(expr: expr, name: name, args: args)
                 
+            case .ifStatement(let condition, let trueBody, let falseBody):
+                return try ifStatement(condition: condition, true: trueBody, false: falseBody)
+                
             case .loop(let body):
                 return try loop(body: body)
             case .while(let cond, let body):
@@ -348,6 +351,17 @@ extension Odo {
             
             currentScope.addSymbol(newVar)
             
+            return .null
+        }
+        
+        func ifStatement(condition: Node, true trueBody: Node, false falseBody: Node?) throws -> Value {
+            let condition = (try visit(node: condition) as! BoolValue).asBool()!
+            
+            if condition {
+                try visit(node: trueBody)
+            } else if let falseBody = falseBody {
+                try visit(node: falseBody)
+            }
             return .null
         }
         

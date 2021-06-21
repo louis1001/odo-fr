@@ -143,8 +143,43 @@ extension Odo {
         
         func ifStatement() throws -> Node {
             let condition = try ternaryOp()
+            ignoreNl()
             
-            return condition
+            if currentToken.type == .curlOpen {
+                try eat(tp: .curlOpen)
+                ignoreNl()
+                
+                let body = try block()
+                
+                ignoreNl()
+                
+                try eat(tp: .curlClose)
+                ignoreNl()
+                
+                let falseBody: Node?
+                if currentToken.type == .else {
+                    try eat(tp: .else)
+                    ignoreNl()
+                    
+                    if currentToken.type == .if {
+                        try eat(tp: .if)
+                        ignoreNl()
+                        falseBody = try ifStatement()
+                    } else {
+                        try eat(tp: .curlOpen)
+                        ignoreNl()
+                        falseBody = try block()
+                        ignoreNl()
+                        try eat(tp: .curlClose)
+                    }
+                } else {
+                    falseBody = nil
+                }
+                
+                return .ifStatement(condition, body, falseBody)
+            }
+            
+            return .noOp
         }
         
         func whileStatement() throws -> Node {
@@ -174,7 +209,7 @@ extension Odo {
             
             ignoreNl()
             
-            var isReversed = currentToken.type == .tilde
+            let isReversed = currentToken.type == .tilde
             if isReversed {
                 try eat(tp: .tilde)
                 ignoreNl()

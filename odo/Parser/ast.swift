@@ -33,6 +33,8 @@ extension Odo {
         
         case functionCall(Node, Token?, [Node])
         
+        case ifStatement(Node, Node, Node?)
+        
         case loop(Node)
         case `while`(Node, Node)
         case forange (Token?, Node, Node?, Node, Bool)

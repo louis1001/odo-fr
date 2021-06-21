@@ -52,6 +52,9 @@ extension Odo {
             case .functionCall(let expr, let name, let args):
                 return try functionCall(expr: expr, name: name, args: args)
                 
+            case .ifStatement(let condition, let trueBody, let falseBody):
+                return try ifStatement(cond: condition, true: trueBody, false: falseBody)
+                
             case .loop(let body):
                 return try loop(body: body)
             case .while(let cond, let body):
@@ -330,6 +333,22 @@ extension Odo {
 //                break
             default:
                 break
+            }
+            
+            return .nothing
+        }
+        
+        func ifStatement(cond condition: Node, true trueBody: Node, false falseBody: Node?) throws -> NodeResult {
+            let condition = try visit(node: condition)
+            
+            guard condition.tp == .boolType else {
+                throw OdoException.TypeError(message: "Condition of if statement must be boolean")
+            }
+            
+            try visit(node: trueBody)
+            
+            if let falseBody = falseBody {
+                try visit(node: falseBody)
             }
             
             return .nothing

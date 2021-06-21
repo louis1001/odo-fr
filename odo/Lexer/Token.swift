@@ -35,6 +35,7 @@ extension Odo {
             case `false`
             case `var`
             case `if`
+            case `else`
             case loop
             case `while`
             case forange
