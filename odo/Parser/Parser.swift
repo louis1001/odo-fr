@@ -98,6 +98,13 @@ extension Odo {
             case .forange:
                 try eat(tp: .forange)
                 result = try forangeStatement()
+                
+            case .break:
+                try eat(tp: .break)
+                result = .break
+            case .continue:
+                try eat(tp: .continue)
+                result = .continue
             default:
                 result = try ternaryOp()
             }

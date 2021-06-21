@@ -157,6 +157,10 @@ extension Odo {
             case `break`
         }
         
+        var unwindConditions: Set<UnwindType> = []
+        
+        private var unwindingFor: UnwindType?
+        
         let name: String
         var parent: SymbolTable?
         
@@ -206,6 +210,27 @@ extension Odo {
             symbols[sym.name] = sym
             
             return sym
+        }
+        
+        var unwindStatus: UnwindType? {
+            unwindingFor
+        }
+        
+        func unwind(to type: UnwindType) {
+            unwindingFor = type
+            if unwindConditions.contains(type) {
+                return
+            }
+            
+            parent?.unwind(to: type)
+        }
+
+        func canUnwind(to type: UnwindType) -> Bool {
+            return unwindConditions.contains(type) || parent?.canUnwind(to: type) ?? false
+        }
+        
+        func stopUnwinding() {
+            unwindingFor = nil
         }
 
     }

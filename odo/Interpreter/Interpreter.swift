@@ -128,6 +128,13 @@ extension Odo {
             case .forange(let id, let first, let second, let body, let rev):
                 return try forange(id: id, first: first, second: second, body: body, rev: rev)
                 
+            case .break:
+                currentScope.unwind(to: .break)
+                break
+            case .continue:
+                currentScope.unwind(to: .continue)
+                break
+                
             case .noOp:
                 break
             }
@@ -141,6 +148,9 @@ extension Odo {
             var result: Value = .null
             for statement in body {
                 result = try visit(node: statement)
+                if currentScope.unwindStatus != nil {
+                    break
+                }
             }
             currentScope = tempScope
             
@@ -370,29 +380,58 @@ extension Odo {
         }
         
         func loop(body: Node) throws -> Value {
+            let loopScope = SymbolTable("loop:loop", parent: currentScope)
+            loopScope.unwindConditions = [.break, .continue]
+            currentScope = loopScope
             
             while true {
                 try visit(node: body)
+                if let unwinding = currentScope.unwindStatus {
+                    currentScope.stopUnwinding()
+                    if unwinding == .break {
+                        break
+                    } else {
+                        continue
+                    }
+                }
             }
+            
+            currentScope = loopScope.parent!
             
             return .null
         }
         
         func vWhile(cond: Node, body: Node) throws -> Value {
+            let whileScope = SymbolTable("while:loop", parent: currentScope)
+            whileScope.unwindConditions = [.continue, .break]
+            currentScope = whileScope
             let condResult = {
                 (try self.visit(node: cond) as! BoolValue)
                     .value
             }
 
+
             while try condResult() {
                 try visit(node: body)
+                
+                if let unwinding = currentScope.unwindStatus {
+                    currentScope.stopUnwinding()
+                    if unwinding == .break {
+                        break
+                    } else {
+                        continue
+                    }
+                }
             }
+            
+            currentScope = whileScope.parent!
             
             return .null
         }
         
         func forange(id: Token?, first: Node, second: Node?, body: Node, rev: Bool) throws -> Value {
             let forangeScope = SymbolTable("forange:loop", parent: currentScope)
+            forangeScope.unwindConditions = [.break, .continue]
             currentScope = forangeScope
             
             let first = (try visit(node: first) as! PrimitiveValue)
@@ -430,7 +469,6 @@ extension Odo {
             }
             
             for i in lowerBound..<upperBound {
-                
                 if withIdentifier {
                     var actualValue = i
                     if rev { actualValue = lowerBound + upperBound - 1 - i }
@@ -439,8 +477,14 @@ extension Odo {
                 }
                 
                 try visit(node: body)
-                
-                // TODO: Handle unwinding
+                if let unwind = currentScope.unwindStatus {
+                    currentScope.stopUnwinding()
+                    if unwind == .continue {
+                        continue
+                    } else {
+                        break
+                    }
+                }
             }
             
             currentScope = forangeScope.parent!

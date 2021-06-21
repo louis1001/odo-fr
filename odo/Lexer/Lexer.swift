@@ -20,7 +20,10 @@ extension Odo {
             
             "loop": Token(type: .loop),
             "while": Token(type: .while),
-            "forange": Token(type: .forange)
+            "forange": Token(type: .forange),
+            
+            "break": Token(type: .break),
+            "continue": Token(type: .continue)
         ]
         
         private var code: String = ""

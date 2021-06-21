@@ -39,6 +39,9 @@ extension Odo {
             case `while`
             case forange
             
+            case `break`
+            case `continue`
+            
             // Punctuation
             case colon
             case semiColon

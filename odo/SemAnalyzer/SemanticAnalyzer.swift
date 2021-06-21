@@ -58,6 +58,20 @@ extension Odo {
                 return try vWhile(cond: cond, body: body)
             case .forange(let id, let first, let second, let body, let rev):
                 return try forange(id: id, first: first, second: second, body: body, rev: rev)
+                
+            case .break:
+                if !currentScope.canUnwind(to: .break) {
+                    throw OdoException.SemanticError(message: "Invalid use of `break` statement outside of loop.")
+                }
+                // Can break?
+                return .nothing
+            case .continue:
+                if !currentScope.canUnwind(to: .continue) {
+                    throw OdoException.SemanticError(message: "Invalid use of `continue` statement outside of loop.")
+                }
+                // Can break?
+                return .nothing
+            
             case .noOp:
                 return .nothing
             }
@@ -349,11 +363,20 @@ extension Odo {
         }
         
         func loop(body: Node) throws -> NodeResult {
+            let loopScope = SymbolTable("loop:loop", parent: currentScope)
+            loopScope.unwindConditions = [.break, .continue]
+            currentScope = loopScope
+            
             try visit(node: body)
+
+            currentScope = loopScope.parent!
             return .nothing
         }
         
         func vWhile(cond: Node, body: Node) throws -> NodeResult {
+            let whileScope = SymbolTable("while:loop", parent: currentScope)
+            whileScope.unwindConditions = [.break, .continue]
+            currentScope = whileScope
             let cond = try visit(node: cond)
             
             if cond.tp != .boolType {
@@ -362,11 +385,14 @@ extension Odo {
             
             try visit(node: body)
             
+            currentScope = whileScope.parent!
+            
             return .nothing
         }
         
         func forange(id: Token?, first: Node, second: Node?, body: Node, rev: Bool) throws -> NodeResult {
             let forangeScope = SymbolTable("forange:loop", parent: currentScope)
+            forangeScope.unwindConditions = [.break, .continue]
             currentScope = forangeScope
             
             let first = try visit(node: first)
