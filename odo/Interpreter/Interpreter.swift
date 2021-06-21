@@ -259,7 +259,7 @@ extension Odo {
         }
         
         func assignment(to lhs: Node, val: Node) throws -> Value {
-            let varSym = try getSymbolFromNode(lhs) as! VarSymbol
+            let varSym = try currentScope.get(from: lhs) as! VarSymbol
             var newValue = try visit(node: val)
             
             if let _ = varSym.value {
@@ -312,7 +312,7 @@ extension Odo {
         }
         
         func varDeclaration(tp: Node, name: Token, initial: Node) throws -> Value {
-            var type = try getSymbolFromNode(tp) as! TypeSymbol
+            var type = try currentScope.get(from: tp) as! TypeSymbol
 
             var initialValue: Value?
             switch initial {
@@ -446,19 +446,6 @@ extension Odo {
             currentScope = forangeScope.parent!
             
             return .null
-        }
-        
-        func getSymbolFromNode(_ node: Node) throws -> Symbol? {
-            // To improve later!
-            
-            switch node {
-            case .variable(let name):
-                return currentScope[name.lexeme, true]
-            default:
-                break
-            }
-
-            return Symbol(name: "", type: .anyType)
         }
         
         public func interpret(code: String) throws -> Value {

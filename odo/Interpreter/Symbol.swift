@@ -159,7 +159,6 @@ extension Odo {
         
         let name: String
         var parent: SymbolTable?
-        private var unwindConditions: Set<UnwindType> = []
         
         private var symbols: Dictionary<String, Symbol> = [:]
         
@@ -182,6 +181,22 @@ extension Odo {
             return nil
         }
         
+        func get(from node: Node, andParents: Bool = true) throws -> Symbol? {
+            switch node {
+            case .variable(let name):
+                if let found = symbols[name.lexeme] {
+                    return found
+                }
+                if andParents {
+                    return parent?[name.lexeme]
+                }
+            default:
+                break
+            }
+
+            return nil
+        }
+        
         @discardableResult
         func addSymbol(_ sym: Symbol) -> Symbol? {
             if symbols.contains(where: { $0.key == sym.name }) {
@@ -191,16 +206,6 @@ extension Odo {
             symbols[sym.name] = sym
             
             return sym
-        }
-        
-        func unwinds(for tag: UnwindType) {
-            unwindConditions.insert(tag)
-        }
-        
-        func unwind(toClosest tag: UnwindType) {
-            if unwindConditions.contains(tag) {
-                
-            }
         }
 
     }

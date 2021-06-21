@@ -174,7 +174,7 @@ extension Odo {
         }
         
         func assignment(to lhs: Node, val: Node) throws -> NodeResult {
-            if let sym = try getSymbolFromNode(lhs) {
+            if let sym = try currentScope.get(from: lhs) {
                 guard let _ = sym.type, !sym.isType else {
                     // Error! Invalid assignment
                     throw OdoException.SemanticError(message: "Invalid assignment to symbol `\(sym.name)`.")
@@ -230,7 +230,7 @@ extension Odo {
                 throw OdoException.NameError(message: "Variable called `\(name.lexeme ?? "??")` already exists.")
             }
             
-            guard let type = try getSymbolFromNode(tp) else {
+            guard let type = try currentScope.get(from: tp) else {
                 throw OdoException.NameError(message: "Unknown type `\(tp)`")
             }
             
@@ -278,7 +278,7 @@ extension Odo {
         }
         
         func functionCall(expr: Node, name: Token?, args: [Node]) throws -> NodeResult {
-            let function = try getSymbolFromNode(expr)
+            let function = try currentScope.get(from: expr)
             
             guard let _ = function?.type as? FunctionTypeSymbol else {
                 throw OdoException.TypeError(message: "Invalid function call. Value of type `\(function?.name ?? "")` is not a function.")
@@ -404,19 +404,6 @@ extension Odo {
             currentScope = forangeScope.parent!
             
             return .nothing
-        }
-        
-        func getSymbolFromNode(_ node: Node) throws -> Symbol? {
-            // To improve later!
-            
-            switch node {
-            case .variable(let name):
-                return currentScope[name.lexeme, true]
-            default:
-                break
-            }
-
-            return Symbol(name: "", type: .anyType)
         }
         
         public func validate(arg: Node, type: TypeSymbol) throws {
