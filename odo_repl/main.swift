@@ -8,9 +8,26 @@
 import Foundation
 import odo
 
+// Multiline code snipped to run before repl
+let initialCode = """
+    #{
+        Testing multiline comments!
+        #{
+            And nested ones!
+        }#
+    }#
+    writeln("it works!")
+    """
+
 let inter = Odo.Interpreter()
 var running = true
 var exitCode: Int32?
+
+do {
+    let _ = try inter.interpret(code: initialCode)
+} catch let err as Odo.OdoException {
+    print(err.description())
+}
 
 inter.addNativeFunction("exit", takes: .someOrLess(1)) {args, _ in
     if let arg = (args.first as? Odo.PrimitiveValue)?.asDouble() {

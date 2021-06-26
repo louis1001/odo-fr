@@ -155,6 +155,38 @@ extension Odo {
                 return Token(type: .identifier, lexeme: result)
             }
         }
+        
+        func ignoreComment() throws {
+            if currentChar == "{" {
+                advance()
+                while true {
+                    guard let char = currentChar else {
+                        throw OdoException.SyntaxError(message: "Missing end of commend `}#`.")
+                    }
+                    
+                    if char == "}" {
+                        advance()
+                        if currentChar == "#" {
+                            advance()
+                            return
+                        }
+                    }
+                    
+                    if char == "#" {
+                        advance()
+                        if currentChar == "{" {
+                            try ignoreComment()
+                        }
+                    }
+                    
+                    advance()
+                }
+            } else {
+                while let char = currentChar, !char.isNewline {
+                    advance()
+                }
+            }
+        }
 
         func ignoreWhitespace() {
             while isWhitespace() {
@@ -164,6 +196,11 @@ extension Odo {
         
         public func getNextToken() throws -> Token {
             ignoreWhitespace()
+            if currentChar == "#" {
+                advance()
+                try ignoreComment()
+                ignoreWhitespace()
+            }
             guard let char = currentChar else {
                 return Token(type: .eof)
             }
