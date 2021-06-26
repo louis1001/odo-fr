@@ -332,14 +332,31 @@ extension Odo {
         }
         
         func equality() throws -> Node {
-            var result = try expression()
+            var result = try relation()
             
             while currentToken.type == .equals ||
                   currentToken.type == .notEquals {
                 let op = currentToken
                 try eat(tp: currentToken.type)
                 ignoreNl()
-                result = .equalityOp(result, op, try expression())
+                result = .equalityOp(result, op, try relation())
+            }
+            
+            return result
+        }
+        
+        func relation() throws -> Node {
+            var result = try expression()
+            
+            while currentToken.type == .lessThan ||
+                    currentToken.type == .lessOrEqualTo ||
+                    currentToken.type == .greaterThan ||
+                    currentToken.type == .greaterOrEqualTo {
+                let op = currentToken
+                try! eat(tp: op.type)
+                
+                ignoreNl()
+                result = .relationalOp(result, op, try expression())
             }
             
             return result

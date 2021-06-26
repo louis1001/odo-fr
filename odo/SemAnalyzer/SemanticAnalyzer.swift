@@ -39,6 +39,8 @@ extension Odo {
                 return try logicOp(lhs: lhs, op: op,rhs: rhs)
             case .equalityOp(let lhs, let op, let rhs):
                 return try equalityOp(lhs: lhs, op: op, rhs: rhs)
+            case .relationalOp(let lhs, let op, let rhs):
+                return try relationalOp(lhs: lhs, op: op, rhs: rhs)
             case .ternaryOp(let condition, let trueCase, let falseCase):
                 return try ternaryOp(condition: condition, true: trueCase, false: falseCase)
 
@@ -185,6 +187,31 @@ extension Odo {
             if !counts(type: lhs.tp!, as: rhs.tp!) || !counts(type: rhs.tp!, as: lhs.tp!) {
                 throw OdoException.TypeError(
                     message: "Invalid equality operation `\(op)`. Value have incompatible types `\(lhs.tp!)` and `\(rhs.tp!)`")
+            }
+            
+            return NodeResult(tp: .boolType)
+        }
+        
+        func relationalOp(lhs: Node, op: Token, rhs: Node) throws -> NodeResult {
+            switch op.type {
+            case .lessThan, .lessOrEqualTo, .greaterThan, .greaterOrEqualTo:
+                break
+            default:
+                throw OdoException.SemanticError(message: "Internal. Invalid operator \(op) for relational expression")
+            }
+            
+            let lhs = try visit(node: lhs)
+            guard lhs.tp != nil else {
+                throw OdoException.ValueError(message: "Left operand in relational operator \(op) must return a value.")
+            }
+            let rhs = try visit(node: rhs)
+            guard rhs.tp != nil else {
+                throw OdoException.ValueError(message: "Right operand in relational operator \(op) must return a value.")
+            }
+            
+            guard lhs.tp!.isNumeric && rhs.tp!.isNumeric else {
+                throw OdoException.TypeError(
+                    message: "Invalid relational operation `\(op)`. Operands must be of numeric types.")
             }
             
             return NodeResult(tp: .boolType)

@@ -249,6 +249,27 @@ extension Odo {
                 default:
                     return Token(type: .assignment)
                 }
+            case ">":
+                advance()
+                
+                switch currentChar {
+                case "=":
+                    advance()
+                    return Token(type: .greaterOrEqualTo)
+                default:
+                    return Token(type: .greaterThan)
+                }
+            case "<":
+                advance()
+                
+                switch currentChar {
+                case "=":
+                    advance()
+                    return Token(type: .lessOrEqualTo)
+                default:
+                    advance()
+                    return Token(type: .lessThan)
+                }
             case "!":
                 advance()
                 if currentChar == "=" {

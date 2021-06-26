@@ -24,6 +24,7 @@ extension Odo {
         case arithmeticOp(Node, Token, Node)
         case logicOp(Node, Token, Node)
         case equalityOp(Node, Token, Node)
+        case relationalOp(Node, Token, Node)
         
         case ternaryOp(Node, Node, Node)
         

@@ -10,13 +10,17 @@ import odo
 
 // Multiline code snipped to run before repl
 let initialCode = """
-    #{
-        Testing multiline comments!
-        #{
-            And nested ones!
-        }#
-    }#
-    writeln("it works!")
+    writeln("1 > 4 = ", 1 > 4)
+    writeln("1 < 4 = ", 1 < 4)
+    writeln("1 <= 4 = ", 1 <= 4)
+    writeln("1 >= 4 = ", 1 >= 4)
+    
+    var i = 0
+    while i < 10 {
+        writeln("i is ", i, " which is less than 10")
+    
+        i = i + 1
+    }
     """
 
 let inter = Odo.Interpreter()

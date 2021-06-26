@@ -108,6 +108,8 @@ extension Odo {
                 return try logicOp(lhs: lhs, op: op, rhs: rhs)
             case .equalityOp(let lhs, let op, let rhs):
                 return try equalityOp(lhs: lhs, op: op, rhs: rhs)
+            case .relationalOp(let lhs, let op, let rhs):
+                return try relationalOp(lhs: lhs, op: op, rhs: rhs)
             case .ternaryOp(let condition, let trueCase, let falseCase):
                 return try ternaryOp(condition: condition, true: trueCase, false: falseCase)
                 
@@ -264,6 +266,28 @@ extension Odo {
                 break
             case .notEquals:
                 result.toggle()
+            default:
+                fatalError("Internal: Invalid equality operation \(op) in the AST")
+            }
+            
+            return BoolValue(value: result)
+        }
+        
+        func relationalOp(lhs: Node, op: Token, rhs: Node) throws -> Value {
+            let lhs = (try visit(node: lhs) as! PrimitiveValue).asDouble()!
+            let rhs = (try visit(node: rhs) as! PrimitiveValue).asDouble()!
+            
+            var result: Bool = false
+            
+            switch op.type {
+            case .lessThan:
+                result = lhs < rhs
+            case .lessOrEqualTo:
+                result = lhs <= rhs
+            case .greaterThan:
+                result = lhs > rhs
+            case .greaterOrEqualTo:
+                result = lhs >= rhs
             default:
                 fatalError("Internal: Invalid equality operation \(op) in the AST")
             }

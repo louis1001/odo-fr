@@ -22,6 +22,10 @@ extension Odo {
             
             case equals
             case notEquals
+            case lessThan
+            case greaterThan
+            case lessOrEqualTo
+            case greaterOrEqualTo
             
             case and
             case or
