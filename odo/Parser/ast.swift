@@ -32,6 +32,8 @@ extension Odo {
         case varDeclaration(Node, Token, Node)
         case assignment(Node, Node)
         
+        case functionDeclaration(Token, [Node], Node?, Node)
+        case functionBody([Node])
         case functionCall(Node, Token?, [Node])
         
         case ifStatement(Node, Node, Node?)

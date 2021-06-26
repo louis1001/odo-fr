@@ -35,8 +35,10 @@ extension Odo {
             return BoolValue(value: value)
         }
         
+        public var className: String { "value" }
+        
         public var description: String {
-            "<value at:\(address)>"
+            "<\(className) at:\(address)>"
         }
 
         public func toText() -> String {
@@ -154,6 +156,8 @@ extension Odo {
         fileprivate override init() {
             super.init()
         }
+        
+        public override var className: String { "functionValue" }
     }
     
     public class NativeFunctionValue : FunctionValue {
@@ -171,5 +175,27 @@ extension Odo {
                 functionBody = body
             }
         }
+        
+        public override var className: String { "nativeFunctionValue" }
+    }
+    
+    public class ScriptedFunctionValue : FunctionValue {
+        let parameters: [Node]
+        let body: Node
+        let parentScope: SymbolTable
+        let name: String?
+        
+        init(type: ScriptedFunctionTypeSymbol, parameters: [Node], body: Node, parentScope: SymbolTable, name: String? = nil) {
+            self.parameters = parameters
+            self.body = body
+            self.parentScope = parentScope
+            self.name = name
+            
+            super.init()
+
+            self.type = type
+        }
+        
+        public override var className: String { "scriptedFunctionValue" }
     }
 }

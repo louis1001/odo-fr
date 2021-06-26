@@ -10,17 +10,11 @@ import odo
 
 // Multiline code snipped to run before repl
 let initialCode = """
-    writeln("1 > 4 = ", 1 > 4)
-    writeln("1 < 4 = ", 1 < 4)
-    writeln("1 <= 4 = ", 1 <= 4)
-    writeln("1 >= 4 = ", 1 >= 4)
-    
-    var i = 0
-    while i < 10 {
-        writeln("i is ", i, " which is less than 10")
-    
-        i = i + 1
+    func a() {
+        writeln("hey!, this is a scripted function")
     }
+    
+    a()
     """
 
 let inter = Odo.Interpreter()

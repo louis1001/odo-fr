@@ -23,6 +23,8 @@ extension Odo {
             "while": Token(type: .while),
             "forange": Token(type: .forange),
             
+            "func": Token(type: .func),
+            
             "break": Token(type: .break),
             "continue": Token(type: .continue)
         ]

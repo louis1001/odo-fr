@@ -51,6 +51,10 @@ extension Odo {
             case .varDeclaration(let tp, let name, let initial):
                 return try varDeclaration(tp: tp, name: name, initial: initial)
                 
+            case .functionDeclaration(let name, let args, let returnType, let body):
+                return try functionDeclaration(name: name, args: args, returns: returnType, body: body)
+            case .functionBody(let statements):
+                return try functionBody(body: statements)
             case .functionCall(let expr, let name, let args):
                 return try functionCall(expr: expr, name: name, args: args)
                 
@@ -317,6 +321,69 @@ extension Odo {
             }
             
             currentScope.addSymbol(newVar)
+            
+            return .nothing
+        }
+        
+        func getParameterTypes(_ args: [Node]) throws -> [FunctionTypeSymbol.ArgumentDefinition] {
+            for _ in args {
+                fatalError("TODO")
+            }
+            return []
+        }
+        
+        func functionBody(body: [Node]) throws -> NodeResult{
+            let temp = currentScope
+            let bodyScope = SymbolTable("func-body-scope", parent: currentScope)
+            bodyScope.unwindConditions = [.return]
+            
+            currentScope = bodyScope
+            
+            for st in body {
+                try visit(node: st)
+            }
+
+            currentScope = temp
+            return .nothing
+        }
+        
+        func functionDeclaration(name: Token, args: [Node], returns: Node?, body: Node) throws -> NodeResult {
+            if currentScope[name.lexeme] != nil {
+                throw OdoException.NameError(message: "Function called `\(name.lexeme!)` already exists in this scope")
+            }
+            
+            let returnType: TypeSymbol?
+            if let returns = returns {
+                guard let typeSymbol = try currentScope.get(from: returns) as? TypeSymbol else {
+                    throw OdoException.TypeError(message: "Type `\(returns)` is not a valid type.")
+                }
+
+                returnType = typeSymbol
+            } else {
+                returnType = nil
+            }
+            
+            let paramTypes = try getParameterTypes(args)
+            
+            let typeName = FunctionTypeSymbol.constructFunctionName(ret: returnType, params: paramTypes)
+            
+//            let semanticScope = ???
+            let functionType: ScriptedFunctionTypeSymbol
+            
+            if let inScope = currentScope[typeName] {
+                // Semantic context handling
+                functionType = inScope as! ScriptedFunctionTypeSymbol
+            } else {
+                functionType = ScriptedFunctionTypeSymbol(typeName, ret: returnType, args: paramTypes)
+                
+                globalScope.addSymbol(functionType)
+                // semanticScope = ???
+            }
+            
+            let functionSymbol = currentScope.addSymbol(ScriptedFunctionSymbol(name: name.lexeme!, type: functionType))
+            functionSymbol?.isInitialized = true
+            
+            // TODO: Handle parameters
             
             return .nothing
         }

@@ -47,6 +47,8 @@ extension Odo {
             case `break`
             case `continue`
             
+            case `func`
+            
             // Punctuation
             case colon
             case semiColon

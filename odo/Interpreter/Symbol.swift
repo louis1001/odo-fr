@@ -80,6 +80,7 @@ extension Odo {
     }
     
     class FunctionTypeSymbol: TypeSymbol {
+        typealias ArgumentDefinition = (TypeSymbol, Bool)
         class func constructFunctionName(ret: TypeSymbol?, params: [(TypeSymbol, Bool)]) -> String {
             var result = "<"
             
@@ -103,15 +104,22 @@ extension Odo {
         }
     }
     
-    class ScriptFunctionTypeSymbol : FunctionTypeSymbol {
-        init(ret: TypeSymbol?, params: [(TypeSymbol, Bool)]) {
-            let name = FunctionTypeSymbol.constructFunctionName(ret: ret, params: params)
-            super.init(name: name, type: ret)
-        }
-    }
-    
     class NativeFunctionTypeSymbol : FunctionTypeSymbol {
         static let shared = NativeFunctionTypeSymbol(name: "native_function")
+    }
+    
+    class ScriptedFunctionTypeSymbol: FunctionTypeSymbol {
+        var returnType: TypeSymbol?
+        var argTypes: [ArgumentDefinition]
+        
+        convenience init(ret: TypeSymbol?, args: [ArgumentDefinition]) {
+            self.init(Self.constructFunctionName(ret: ret, params: args), ret: ret, args: args)
+        }
+        
+        init(_ name: String, ret: TypeSymbol?, args: [ArgumentDefinition]) {
+            argTypes = args
+            super.init(name: name, type: ret)
+        }
     }
     
     public class NativeFunctionSymbol : Symbol {
@@ -136,6 +144,15 @@ extension Odo {
             if let validation = validation { semanticTest = validation }
             argCount = args
             super.init(name: name, type: NativeFunctionTypeSymbol.shared)
+        }
+    }
+    
+    class ScriptedFunctionSymbol: Symbol {
+        var value: ScriptedFunctionValue?
+
+        init(name: String, type: ScriptedFunctionTypeSymbol, value: ScriptedFunctionValue? = nil) {
+            self.value = value
+            super.init(name: name, type: type)
         }
     }
     
@@ -185,7 +202,8 @@ extension Odo {
             return nil
         }
         
-        func get(from node: Node, andParents: Bool = true) throws -> Symbol? {
+        func get(from node: Node?, andParents: Bool = true) throws -> Symbol? {
+            guard let node = node else { return nil }
             switch node {
             case .variable(let name):
                 if let found = symbols[name.lexeme] {

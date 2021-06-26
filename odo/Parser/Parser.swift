@@ -99,6 +99,10 @@ extension Odo {
                 try eat(tp: .forange)
                 result = try forangeStatement()
                 
+            case .func:
+                try eat(tp: .func)
+                result = try funcDeclaration()
+                
             case .break:
                 try eat(tp: .break)
                 result = .break
@@ -236,6 +240,31 @@ extension Odo {
             let body = try statement(withTerm: false)
             
             return .forange(id, firstExpr, secondExpr, body, isReversed)
+        }
+        
+        func funcDeclaration() throws -> Node {
+            ignoreNl()
+            let name = currentToken
+            try eat(tp: .identifier)
+            
+            ignoreNl()
+
+            try eat(tp: .parOpen)
+            ignoreNl()
+            try eat(tp: .parClose)
+            
+            ignoreNl()
+            try eat(tp: .curlOpen)
+            ignoreNl()
+            let body = try functionBody()
+            try eat(tp: .curlClose)
+            
+            return .functionDeclaration(name, [], nil, body)
+        }
+        
+        func functionBody() throws -> Node {
+            let content = try statementList()
+            return .functionBody(content)
         }
         
         func callArgs() throws -> [Node] {

@@ -7,6 +7,8 @@
 import Foundation
 
 extension Odo {
+    struct CallStackFrame {}
+    
     public class Interpreter {
         let parser = Parser()
         lazy var semAn: SemanticAnalyzer = SemanticAnalyzer(inter: self)
@@ -15,6 +17,9 @@ extension Odo {
         let replScope: SymbolTable
         
         var currentScope: SymbolTable
+        
+        static let maxCallDepth: UInt = 600
+        var callStack: [CallStackFrame] = []
         
         public init() {
             globalTable = SymbolTable("globalTable")
@@ -120,6 +125,10 @@ extension Odo {
             case .varDeclaration(let tp, let name, let initial):
                 return try varDeclaration(tp: tp, name: name, initial: initial)
                 
+            case .functionBody(let args):
+                return try functionBody(body: args)
+            case .functionDeclaration(let name, let args, let ret, let body):
+                return try functionDeclaration(name: name, args: args, returns: ret, body: body)
             case .functionCall(let expr, let name, let args):
                 return try functionCall(expr: expr, name: name, args: args)
                 
@@ -341,6 +350,8 @@ extension Odo {
                 return varSymbol.value!
             case let nativeFuncSymbol as NativeFunctionSymbol:
                 return nativeFuncSymbol.body!
+            case let scriptedFuncSymbol as ScriptedFunctionSymbol:
+                return scriptedFuncSymbol.value!
             default:
                 break
             }
@@ -402,6 +413,61 @@ extension Odo {
             }
         }
         
+        func getParamTypes(_ params: [Node]) throws -> [FunctionTypeSymbol.ArgumentDefinition] {
+            for _ in params {
+                fatalError("TODO")
+            }
+            
+            return []
+        }
+        
+        func functionBody(body: [Node]) throws -> Value {
+            let temp = currentScope
+            let bodyScope = SymbolTable("func-body-scope", parent: currentScope)
+            bodyScope.unwindConditions = [.return]
+            
+            currentScope = bodyScope
+            
+            for st in body {
+                try visit(node: st)
+                if bodyScope.unwindStatus != nil {
+                    bodyScope.stopUnwinding()
+                    // Get the value
+                    break
+                }
+            }
+            
+            currentScope = temp
+            
+            // Return the value
+            return .null
+        }
+        
+        func functionDeclaration(name: Token, args: [Node], returns: Node?, body: Node) throws -> Value {
+            let returnType = try currentScope.get(from: returns) as? TypeSymbol
+            
+            let paramTypes = try getParamTypes(args)
+            
+            let typeName = FunctionTypeSymbol.constructFunctionName(ret: returnType, params: paramTypes)
+            
+            let typeOfFunction: ScriptedFunctionTypeSymbol
+            
+            if let inScope = globalTable[typeName] {
+                typeOfFunction = inScope as! ScriptedFunctionTypeSymbol
+            } else {
+                typeOfFunction = ScriptedFunctionTypeSymbol(typeName, ret: returnType, args: paramTypes)
+                globalTable.addSymbol(
+                    typeOfFunction
+                )
+            }
+            
+            let funcValue = ScriptedFunctionValue(type: typeOfFunction, parameters: args, body: body, parentScope: currentScope)
+            
+            currentScope.addSymbol(ScriptedFunctionSymbol(name: name.lexeme, type: typeOfFunction, value: funcValue))
+            
+            return .null
+        }
+        
         func functionCall(expr: Node, name: Token?, args: [Node]) throws -> Value {
             let function = try visit(node: expr) as! FunctionValue
             
@@ -410,11 +476,41 @@ extension Odo {
                 let args = try args.map { node in try self.visit(node: node) }
                 
                 return try native.functionBody(args, self)
+            case let scripted as ScriptedFunctionValue:
+                return try callScriptedFunction(scripted, args: args)
             default:
-                break
+                fatalError("Oh no")
             }
             
             return .null
+        }
+        
+        func callScriptedFunction(_ fn: ScriptedFunctionValue, args: [Node]) throws -> Value {
+            if callStack.count > Self.maxCallDepth {
+                throw OdoException.RuntimeError(message: "Callback depth exceeded!")
+            }
+            
+            let funcScope = SymbolTable("func-scope", parent: fn.parentScope)
+            let calleeScope = currentScope
+            
+            // TODO: Handle arguments
+            for _ in args {
+                fatalError("TODO")
+            }
+            
+            currentScope = funcScope
+            
+            callStack.append(CallStackFrame())
+            
+            // Add the arguments to the scope
+            
+            let result = try visit(node: fn.body)
+            
+            currentScope = calleeScope
+
+            callStack.removeLast()
+            
+            return result
         }
         
         func loop(body: Node) throws -> Value {
