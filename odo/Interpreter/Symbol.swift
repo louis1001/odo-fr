@@ -230,6 +230,12 @@ extension Odo {
             return sym
         }
         
+        func removeSymbol(_ sym: Symbol) {
+            if let indx = symbols.index(forKey: sym.name) {
+                symbols.remove(at: indx)
+            }
+        }
+        
         var unwindStatus: UnwindType? {
             unwindingFor
         }

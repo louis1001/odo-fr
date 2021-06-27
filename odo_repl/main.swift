@@ -12,9 +12,21 @@ import odo
 let initialCode = """
     func a() {
         writeln("hey!, this is a scripted function")
+        # Works because by the time it's
+        # first called, someVar has been declared
+        writeln(someVar)
     }
     
+    func b() {
+        # Doesn't work because we never declare
+        # this variable
+        writeln(doesntExist)
+    }
+    
+    var someVar = 200.1234
+    
     a()
+    b()
     """
 
 let inter = Odo.Interpreter()

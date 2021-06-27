@@ -6,6 +6,30 @@
 //
 
 extension Odo {
+    struct LazyCheck {
+        var parent: SymbolTable
+        var body: (SymbolTable) throws ->Void
+        var onError: (()->Void)?
+    }
+    
+    class LazyScope {
+        var checks: [Symbol: LazyCheck] = [:]
+        
+        subscript(symbol: Symbol) -> LazyCheck? {
+            get {
+                checks[symbol]
+            }
+            
+            set {
+                checks[symbol] = newValue
+            }
+        }
+        
+        func remove(_ sym: Symbol) {
+            checks.removeValue(forKey: sym)
+        }
+    }
+    
     public class SemanticAnalyzer {
         let interpreter: Interpreter
         let globalScope: SymbolTable
@@ -13,11 +37,66 @@ extension Odo {
         
         var currentScope: SymbolTable
         
+        var lazyScopeStack: [LazyScope] = []
+        var currentLazyScope: LazyScope?
+        
         init(inter: Interpreter) {
             self.interpreter = inter
             globalScope = SymbolTable("semanticGlobalTable", parent: inter.globalTable)
             replScope = SymbolTable("semanticRepl", parent: globalScope)
             currentScope = globalScope
+            
+            pushLazyScope()
+        }
+        
+        func popLazyCheck(for sym: Symbol) -> LazyCheck? {
+            //          A stack. I want to search from the tail
+            if let indx = lazyScopeStack.lastIndex(where: { $0[sym] != nil }) {
+                let check = lazyScopeStack[indx][sym]
+                lazyScopeStack[indx].remove(sym)
+                return check
+            }
+            return nil
+        }
+        
+        func addLazyCheck(for sym: Symbol, check: LazyCheck) {
+            sym.hasBeenChecked = false
+            currentLazyScope?[sym] = check
+        }
+        
+        func consumeLazy(symbol: Symbol) throws {
+            if let lazyCheck = popLazyCheck(for: symbol) {
+                symbol.hasBeenChecked = true
+                do {
+                    try lazyCheck.body(lazyCheck.parent)
+                } catch let err as OdoException {
+                    lazyCheck.onError?()
+                    lazyCheck.parent.removeSymbol(symbol)
+                    throw err
+                }
+            }
+        }
+        
+        func pushLazyScope() {
+            lazyScopeStack.append(LazyScope())
+            currentLazyScope = lazyScopeStack.last
+        }
+        
+        func popLazyScope() throws {
+            if !lazyScopeStack.isEmpty, let scope = currentLazyScope {
+                for (symbol, lazyCheck) in scope.checks {
+                    if !symbol.hasBeenChecked {
+                        symbol.hasBeenChecked = true
+                        do {
+                            try lazyCheck.body(lazyCheck.parent)
+                        } catch let err as OdoException {
+                            lazyCheck.onError?()
+                            lazyCheck.parent.removeSymbol(symbol)
+                            throw err
+                        }
+                    }
+                }
+            }
         }
         
         @discardableResult
@@ -86,12 +165,25 @@ extension Odo {
             }
         }
         
+        func getSymbol(from node: Node) throws -> Symbol? {
+            if let sym = try currentScope.get(from: node) {
+                if !sym.hasBeenChecked { try consumeLazy(symbol: sym) }
+                return sym
+            }
+            
+            return nil
+        }
+        
         func block(body: [Node]) throws -> NodeResult {
             let tempScope = currentScope
             currentScope = SymbolTable("block_scope", parent: currentScope)
+            pushLazyScope()
+            
             for statement in body {
                 try visit(node: statement)
             }
+            
+            try popLazyScope()
             currentScope = tempScope
             
             return .nothing
@@ -222,7 +314,7 @@ extension Odo {
         }
         
         func assignment(to lhs: Node, val: Node) throws -> NodeResult {
-            if let sym = try currentScope.get(from: lhs) {
+            if let sym = try getSymbol(from: lhs) {
                 guard let _ = sym.type, !sym.isType else {
                     // Error! Invalid assignment
                     throw OdoException.SemanticError(message: "Invalid assignment to symbol `\(sym.name)`.")
@@ -262,7 +354,7 @@ extension Odo {
             }
             
             if !sym.hasBeenChecked {
-                // TODO: consumeLazy
+                try consumeLazy(symbol: sym)
             }
             
             if sym.isInitialized {
@@ -278,7 +370,7 @@ extension Odo {
                 throw OdoException.NameError(message: "Variable called `\(name.lexeme ?? "??")` already exists.")
             }
             
-            guard let type = try currentScope.get(from: tp) else {
+            guard let type = try getSymbol(from: tp) else {
                 throw OdoException.NameError(message: "Unknown type `\(tp)`")
             }
             
@@ -287,7 +379,7 @@ extension Odo {
             }
             
             if !type.hasBeenChecked {
-                // TODO: consume lazy
+                try consumeLazy(symbol: type)
             }
             
             let newVar = VarSymbol(name: name.lexeme, type: type)
@@ -303,7 +395,7 @@ extension Odo {
                 }
                 
                 if !newType.hasBeenChecked {
-                    // TODO: consume lazy
+                    try consumeLazy(symbol: newType)
                 }
                 
                 guard counts(type: newType, as: type) else {
@@ -354,7 +446,7 @@ extension Odo {
             
             let returnType: TypeSymbol?
             if let returns = returns {
-                guard let typeSymbol = try currentScope.get(from: returns) as? TypeSymbol else {
+                guard let typeSymbol = try getSymbol(from: returns) as? TypeSymbol else {
                     throw OdoException.TypeError(message: "Type `\(returns)` is not a valid type.")
                 }
 
@@ -383,13 +475,26 @@ extension Odo {
             let functionSymbol = currentScope.addSymbol(ScriptedFunctionSymbol(name: name.lexeme!, type: functionType))
             functionSymbol?.isInitialized = true
             
+            let temp = currentScope
+            
             // TODO: Handle parameters
+            
+            addLazyCheck(
+                for: functionSymbol!,
+                check: LazyCheck(parent: temp) { scope in
+                    // Handle return type
+                    let temp = self.currentScope
+                    self.currentScope = scope
+                    try self.visit(node: body)
+                    self.currentScope = temp
+                }
+            )
             
             return .nothing
         }
         
         func functionCall(expr: Node, name: Token?, args: [Node]) throws -> NodeResult {
-            let function = try currentScope.get(from: expr)
+            let function = try getSymbol(from: expr)
             
             guard let _ = function?.type as? FunctionTypeSymbol else {
                 throw OdoException.TypeError(message: "Invalid function call. Value of type `\(function?.name ?? "")` is not a function.")
@@ -420,10 +525,14 @@ extension Odo {
                     }
                 }
                 
+                for arg in args {
+                    try visit(node: arg)
+                }
+                
                 let result = try native.semanticTest(args, self)
                 
                 return NodeResult(tp: result)
-//            case let scripted as ScriptFunctionSymbol:
+//            case let scripted as ScriptedFunctionSymbol:
 //                break
             default:
                 break
