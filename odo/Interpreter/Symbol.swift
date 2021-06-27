@@ -28,6 +28,8 @@ extension Odo {
         var isInitialized = true
         var hasBeenChecked = true
         
+        var onDestruction: (()->Void)?
+        
         init(name: String, type: TypeSymbol) {
             self.name = name
             self.type = type
@@ -36,6 +38,10 @@ extension Odo {
         fileprivate init(name: String) {
             self.type = nil
             self.name = name
+        }
+        
+        deinit {
+            onDestruction?()
         }
         
         func toString() -> String {
@@ -257,6 +263,13 @@ extension Odo {
             unwindingFor = nil
         }
 
+        func copy() -> SymbolTable {
+            let table = SymbolTable(self.name, parent: self.parent)
+            table.unwindConditions = self.unwindConditions
+            table.symbols = self.symbols
+            
+            return table
+        }
     }
     
 }

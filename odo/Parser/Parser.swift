@@ -251,6 +251,11 @@ extension Odo {
 
             try eat(tp: .parOpen)
             ignoreNl()
+            var declarations = [Node]()
+            while currentToken.type == .identifier {
+                declarations.append(try declaration())
+                ignoreNl()
+            }
             try eat(tp: .parClose)
             
             ignoreNl()
@@ -259,7 +264,7 @@ extension Odo {
             let body = try functionBody()
             try eat(tp: .curlClose)
             
-            return .functionDeclaration(name, [], nil, body)
+            return .functionDeclaration(name, declarations, nil, body)
         }
         
         func functionBody() throws -> Node {
@@ -297,13 +302,13 @@ extension Odo {
                 type = .variable(Token(type: .identifier, lexeme: "any"))
             }
             
-            let assignment: Node
+            let assignment: Node?
             if currentToken.type == .assignment {
                 try eat(tp: .assignment)
                 ignoreNl()
                 assignment = try ternaryOp()
             } else {
-                assignment = .noOp
+                assignment = nil
             }
             
             return .varDeclaration(type, name, assignment)

@@ -10,23 +10,13 @@ import odo
 
 // Multiline code snipped to run before repl
 let initialCode = """
-    func a() {
-        writeln("hey!, this is a scripted function")
-        # Works because by the time it's
-        # first called, someVar has been declared
-        writeln(someVar)
+    func fib(n: int) {
+        writeln(n * 2)
     }
     
-    func b() {
-        # Doesn't work because we never declare
-        # this variable
-        writeln(doesntExist)
+    func optional(o: text = "hey!") {
+        writeln(o, " how are you?")
     }
-    
-    var someVar = 200.1234
-    
-    a()
-    b()
     """
 
 let inter = Odo.Interpreter()
@@ -34,7 +24,7 @@ var running = true
 var exitCode: Int32?
 
 do {
-    let _ = try inter.interpret(code: initialCode)
+    let _ = try inter.repl(code: initialCode)
 } catch let err as Odo.OdoException {
     print(err.description())
 }

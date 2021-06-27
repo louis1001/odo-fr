@@ -12,10 +12,10 @@ extension Odo {
         var onError: (()->Void)?
     }
     
-    class LazyScope {
-        var checks: [Symbol: LazyCheck] = [:]
+    class GenericSymbolMap<S: Symbol, T> {
+        var checks: [Symbol: T] = [:]
         
-        subscript(symbol: Symbol) -> LazyCheck? {
+        subscript(symbol: Symbol) -> T? {
             get {
                 checks[symbol]
             }
@@ -30,6 +30,8 @@ extension Odo {
         }
     }
     
+    typealias SymbolMap<T> = GenericSymbolMap<Symbol, T>
+    
     public class SemanticAnalyzer {
         let interpreter: Interpreter
         let globalScope: SymbolTable
@@ -37,8 +39,14 @@ extension Odo {
         
         var currentScope: SymbolTable
         
+        typealias LazyScope = SymbolMap<LazyCheck>
+        // Lazy Analysis
         var lazyScopeStack: [LazyScope] = []
         var currentLazyScope: LazyScope?
+        
+        // Symbol Meta Information
+        let semanticContexts = SymbolMap<SymbolTable>()
+        let functionContexts = GenericSymbolMap<FunctionTypeSymbol, [FunctionTypeSymbol.ArgumentDefinition]>()
         
         init(inter: Interpreter) {
             self.interpreter = inter
@@ -97,6 +105,33 @@ extension Odo {
                     }
                 }
             }
+        }
+        
+        func addSemanticContext(for sym: Symbol, scope: SymbolTable) -> SymbolTable {
+            semanticContexts[sym] = scope
+            
+            sym.onDestruction = { [weak self] in
+                self?.semanticContexts.remove(sym)
+            }
+            
+            return scope
+        }
+        
+        func addSemanticContext(for sym: FunctionTypeSymbol, called name: String) -> SymbolTable {
+            addSemanticContext(for: sym, scope: SymbolTable(name, parent: currentScope))
+        }
+        
+        func addFunctionSemanticContext(
+            for sym: FunctionTypeSymbol,
+            name: String,
+            params: [FunctionTypeSymbol.ArgumentDefinition]) -> SymbolTable {
+            
+            let funcTable = addSemanticContext(for: sym, called: name)
+            
+            functionContexts[sym] = params
+            sym.onDestruction = nil
+
+            return funcTable
         }
         
         @discardableResult
@@ -365,7 +400,7 @@ extension Odo {
             throw OdoException.ValueError(message: "Using variable `\(sym.name)` when is hasn't been initialized.")
         }
         
-        func varDeclaration(tp: Node, name: Token, initial: Node) throws -> NodeResult {
+        func varDeclaration(tp: Node, name: Token, initial: Node?) throws -> NodeResult {
             if let _ = currentScope[name.lexeme, false] {
                 throw OdoException.NameError(message: "Variable called `\(name.lexeme ?? "??")` already exists.")
             }
@@ -384,10 +419,7 @@ extension Odo {
             
             let newVar = VarSymbol(name: name.lexeme, type: type)
 
-            switch initial {
-            case .noOp:
-                break
-            default:
+            if let initial = initial {
                 let newValue = try visit(node: initial)
                 
                 guard let newType = newValue.tp else {
@@ -417,11 +449,36 @@ extension Odo {
             return .nothing
         }
         
-        func getParameterTypes(_ args: [Node]) throws -> [FunctionTypeSymbol.ArgumentDefinition] {
-            for _ in args {
-                fatalError("TODO")
+        func getParameterTypes(_ params: [Node]) throws -> [FunctionTypeSymbol.ArgumentDefinition] {
+            var result: [FunctionTypeSymbol.ArgumentDefinition] = []
+            var hasSeenOptional = false
+            for par in params {
+                var isOptional: Bool
+                let tp: TypeSymbol
+                
+                switch par {
+                case .varDeclaration(let type, _, let initial):
+                    guard let varType = try getSymbol(from: type) as? TypeSymbol else {
+                        throw OdoException.TypeError(message: "Type is invalid for parameter declaration")
+                    }
+                    
+                    tp = varType
+                    isOptional = initial != nil
+                default:
+                    throw OdoException.SyntaxError(message: "Invalid statement in function declaration. Expected parameter declaration")
+                }
+                
+                if isOptional {
+                    if hasSeenOptional {
+                        throw OdoException.SemanticError(message: "Cannot define non optional parameter after an optional")
+                    }
+
+                    hasSeenOptional = true
+                }
+                
+                result.append((tp, isOptional))
             }
-            return []
+            return result
         }
         
         func functionBody(body: [Node]) throws -> NodeResult{
@@ -459,36 +516,60 @@ extension Odo {
             
             let typeName = FunctionTypeSymbol.constructFunctionName(ret: returnType, params: paramTypes)
             
-//            let semanticScope = ???
             let functionType: ScriptedFunctionTypeSymbol
+            
+            let funcScope: SymbolTable
             
             if let inScope = currentScope[typeName] {
                 // Semantic context handling
                 functionType = inScope as! ScriptedFunctionTypeSymbol
+                
+                if let existingContext = semanticContexts[functionType] {
+                    funcScope = existingContext
+                } else {
+                    funcScope = addFunctionSemanticContext(for: functionType, name: typeName, params: paramTypes).copy()
+                }
             } else {
                 functionType = ScriptedFunctionTypeSymbol(typeName, ret: returnType, args: paramTypes)
                 
                 globalScope.addSymbol(functionType)
-                // semanticScope = ???
+                funcScope = addFunctionSemanticContext(for: functionType, name: typeName, params: paramTypes).copy()
             }
+            
+            funcScope.parent = currentScope
             
             let functionSymbol = currentScope.addSymbol(ScriptedFunctionSymbol(name: name.lexeme!, type: functionType))
             functionSymbol?.isInitialized = true
             
             let temp = currentScope
+            currentScope = funcScope
             
             // TODO: Handle parameters
+            for par in args {
+                try visit(node: par)
+                let name: String
+                switch par {
+                case .varDeclaration(_, let varName, _):
+                    name = varName.lexeme
+                default:
+                    name = ""
+                }
+                
+                currentScope[name]?.isInitialized = true
+            }
             
             addLazyCheck(
                 for: functionSymbol!,
-                check: LazyCheck(parent: temp) { scope in
+                check: LazyCheck(parent: temp) { _ in
                     // Handle return type
                     let temp = self.currentScope
-                    self.currentScope = scope
+                    self.currentScope = funcScope
                     try self.visit(node: body)
                     self.currentScope = temp
                 }
             )
+            
+            currentScope = temp
             
             return .nothing
         }
@@ -532,8 +613,35 @@ extension Odo {
                 let result = try native.semanticTest(args, self)
                 
                 return NodeResult(tp: result)
-//            case let scripted as ScriptedFunctionSymbol:
-//                break
+            case let scripted as ScriptedFunctionSymbol:
+                let functionType = scripted.type!
+                
+                let parametersInTemplate = functionContexts[functionType]!
+                
+                if args.count > parametersInTemplate.count {
+                    throw OdoException.SemanticError(message: "Function `\(function?.name ?? "")` takes a maximum of \(parametersInTemplate.count) arguments, but was called with \(args.count).")
+                }
+                
+                for (i, paramDef) in parametersInTemplate.enumerated() {
+                    let (param, isOptional) = paramDef
+                    
+                    if args.count > i {
+                        let argument = args[i]
+                        let argValue = try visit(node: argument)
+                        // Handle Empty Lists
+                        
+                        guard let argType = argValue.tp else {
+                            throw OdoException.ValueError(message: "Function call argument \(i) does not provide a value")
+                        }
+                        
+                        if !counts(type: argType, as: param) {
+                            throw OdoException.TypeError(message: "Invalid type for argument \(i) of function. Expected type `\(param.name)` but received `\(argType.name)`.")
+                        }
+                    } else if !isOptional {
+                        throw OdoException.ValueError(message: "No value for function call argument \(i)")
+                    }
+                }
+                return NodeResult(tp: functionType.type)
             default:
                 break
             }

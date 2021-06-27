@@ -359,14 +359,11 @@ extension Odo {
             throw OdoException.NameError(message: "Invalid identifier `\(name.lexeme!)`")
         }
         
-        func varDeclaration(tp: Node, name: Token, initial: Node) throws -> Value {
+        func varDeclaration(tp: Node, name: Token, initial: Node?) throws -> Value {
             var type = try currentScope.get(from: tp) as! TypeSymbol
 
             var initialValue: Value?
-            switch initial {
-            case .noOp:
-                break
-            default:
+            if let initial = initial {
                 initialValue = try visit(node: initial)
                 
                 if type == .anyType {
@@ -414,11 +411,19 @@ extension Odo {
         }
         
         func getParamTypes(_ params: [Node]) throws -> [FunctionTypeSymbol.ArgumentDefinition] {
-            for _ in params {
-                fatalError("TODO")
+            var result: [FunctionTypeSymbol.ArgumentDefinition] = []
+            for param in params {
+                switch param {
+                case .varDeclaration(let type, _, let initial):
+                    let tp = try currentScope.get(from: type) as! TypeSymbol
+                    let isOptional = initial != nil
+                    result.append((tp, isOptional))
+                default:
+                    break
+                }
             }
             
-            return []
+            return result
         }
         
         func functionBody(body: [Node]) throws -> Value {
@@ -493,9 +498,22 @@ extension Odo {
             let funcScope = SymbolTable("func-scope", parent: fn.parentScope)
             let calleeScope = currentScope
             
-            // TODO: Handle arguments
-            for _ in args {
-                fatalError("TODO")
+            var newDeclarations: [Node] = []
+            var initialValues: [(Token, Value)] = []
+            for (i, parameter) in fn.parameters.enumerated() {
+                if args.count > i {
+                    switch parameter {
+                    case .varDeclaration(_, let name, _):
+                        let newValue = try visit(node: args[i])
+                        // TODO: Make sure copyable works
+                        initialValues.append((name, newValue))
+                        break
+                    default:
+                        break
+                    }
+                }
+                
+                newDeclarations.append(parameter)
             }
             
             currentScope = funcScope
@@ -503,6 +521,26 @@ extension Odo {
             callStack.append(CallStackFrame())
             
             // Add the arguments to the scope
+            for (i, decl) in newDeclarations.enumerated() {
+                try visit(node: decl)
+                
+                if i < initialValues.count {
+                    let varName = initialValues[i].0.lexeme!
+                    let newVar = currentScope[varName]
+
+                    // Please remember to update when new kinds
+                    // of value-holding symbols are added.
+                    // Thank you.
+                    switch newVar {
+                    case let variable as VarSymbol:
+                        variable.value = initialValues[i].1
+                    case let scriptedFunction as ScriptedFunctionSymbol:
+                        scriptedFunction.value = (initialValues[i].1 as! ScriptedFunctionValue)
+                    default:
+                        break
+                    }
+                }
+            }
             
             let result = try visit(node: fn.body)
             

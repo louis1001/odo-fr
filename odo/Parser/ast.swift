@@ -29,7 +29,7 @@ extension Odo {
         case ternaryOp(Node, Node, Node)
         
         case variable(Token)
-        case varDeclaration(Node, Token, Node)
+        case varDeclaration(Node, Token, Node?)
         case assignment(Node, Node)
         
         case functionDeclaration(Token, [Node], Node?, Node)
