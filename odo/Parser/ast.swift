@@ -36,11 +36,16 @@ extension Odo {
         case functionBody([Node])
         case functionCall(Node, Token?, [Node])
         
+        case returnStatement(Node?)
+        
         case ifStatement(Node, Node, Node?)
         
         case loop(Node)
         case `while`(Node, Node)
         case forange (Token?, Node, Node?, Node, Bool)
+        
+        // MARK: - Type nodes
+        case functionType([(Node, Bool)], Node?)
         
         case noOp
         

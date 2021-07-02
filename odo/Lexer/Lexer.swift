@@ -24,6 +24,7 @@ extension Odo {
             "forange": Token(type: .forange),
             
             "func": Token(type: .func),
+            "return": Token(type: .return),
             
             "break": Token(type: .break),
             "continue": Token(type: .continue)
@@ -269,7 +270,6 @@ extension Odo {
                     advance()
                     return Token(type: .lessOrEqualTo)
                 default:
-                    advance()
                     return Token(type: .lessThan)
                 }
             case "!":

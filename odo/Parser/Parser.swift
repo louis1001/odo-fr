@@ -109,6 +109,19 @@ extension Odo {
             case .continue:
                 try eat(tp: .continue)
                 result = .continue
+            case .return:
+                try eat(tp: .return)
+                let expr: Node?
+                if currentToken.type != .eof &&
+                    currentToken.type != .curlClose &&
+                    currentToken.type != .semiColon &&
+                    currentToken.type != .newLine {
+                    expr = try ternaryOp()
+                } else {
+                    expr = nil
+                }
+
+                result = .returnStatement(expr)
             default:
                 result = try ternaryOp()
             }
@@ -120,6 +133,43 @@ extension Odo {
             return result
         }
         
+        func getFunctionType() throws -> Node {
+            try eat(tp: .lessThan)
+            
+            var arguments: [(Node, Bool)] = []
+            
+            var first = true
+            while currentToken.type != .colon {
+                if !first { try eat(tp: .comma) }
+                else { first = false }
+                let arg = try getFullType()
+                ignoreNl()
+                
+                let isOptional = currentToken.type == .quest
+                if isOptional {
+                    try eat(tp: .quest)
+                    ignoreNl()
+                }
+                
+                arguments.append((arg, isOptional))
+                ignoreNl()
+            }
+            
+            try eat(tp: .colon)
+            ignoreNl()
+            
+            let returnType: Node?
+            if currentToken.type != .greaterThan {
+                returnType = try getFullType()
+                ignoreNl()
+            } else {
+                returnType = nil
+            }
+            
+            try eat(tp: .greaterThan)
+            return .functionType(arguments, returnType)
+        }
+        
         func getFullType() throws -> Node {
             var tp: Node = .noOp
             
@@ -128,16 +178,16 @@ extension Odo {
             if currentToken.type == .identifier {
                 tp = .variable(currentToken)
                 try eat(tp: .identifier)
-            /*} else if currentToken.type == .lessThan {
-                // Maybe it's a function type
-            */ } else {
+                
+                // while currentToken is ::
+                // make tp a static variable node
+            } else if currentToken.type == .lessThan {
+                tp = try getFunctionType()
+            } else {
                 throw OdoException.SyntaxError(
                     message: "Unexpected token `\(currentToken)`. Expected a type for variable declaration"
                 )
-             }
-            
-            // while currentToken is ::
-            // make tp a static variable node
+            }
             
             // while currentToken is [
             // make tp a index node
@@ -158,7 +208,6 @@ extension Odo {
                 ignoreNl()
                 
                 try eat(tp: .curlClose)
-                ignoreNl()
                 
                 let falseBody: Node?
                 if currentToken.type == .else {
@@ -255,8 +304,19 @@ extension Odo {
             while currentToken.type == .identifier {
                 declarations.append(try declaration())
                 ignoreNl()
+                if currentToken.type != .parClose {
+                    try eat(tp: .comma)
+                    ignoreNl()
+                }
             }
             try eat(tp: .parClose)
+            ignoreNl()
+            
+            var returnType: Node?
+            if currentToken.type == .colon {
+                try eat(tp: .colon)
+                returnType = try getFullType()
+            }
             
             ignoreNl()
             try eat(tp: .curlOpen)
@@ -264,7 +324,7 @@ extension Odo {
             let body = try functionBody()
             try eat(tp: .curlClose)
             
-            return .functionDeclaration(name, declarations, nil, body)
+            return .functionDeclaration(name, declarations, returnType, body)
         }
         
         func functionBody() throws -> Node {

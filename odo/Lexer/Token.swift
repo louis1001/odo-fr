@@ -48,6 +48,7 @@ extension Odo {
             case `continue`
             
             case `func`
+            case `return`
             
             // Punctuation
             case colon

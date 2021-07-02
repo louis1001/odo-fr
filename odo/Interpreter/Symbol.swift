@@ -90,14 +90,19 @@ extension Odo {
         class func constructFunctionName(ret: TypeSymbol?, params: [(TypeSymbol, Bool)]) -> String {
             var result = "<"
             
-            for (tp, optional) in params {
+            for (i, paramDef) in params.enumerated() {
+                let (tp, optional) = paramDef
                 result += tp.name + (optional ? "?" : "")
+                
+                if i < params.count-1 {
+                    result += ", "
+                }
             }
             
             result += ":"
-            
+
             if let returns = ret {
-                result += returns.name
+                result += " " + returns.name
             }
             
             result += ">"
@@ -124,7 +129,8 @@ extension Odo {
         
         init(_ name: String, ret: TypeSymbol?, args: [ArgumentDefinition]) {
             argTypes = args
-            super.init(name: name, type: ret)
+            returnType = ret
+            super.init(name: name, type: nil)
         }
     }
     
@@ -187,6 +193,10 @@ extension Odo {
         let name: String
         var parent: SymbolTable?
         
+        private var topScope: SymbolTable {
+            parent?.topScope ?? self
+        }
+        
         private var symbols: Dictionary<String, Symbol> = [:]
         
         var level: Int {
@@ -217,6 +227,34 @@ extension Odo {
                 }
                 if andParents {
                     return parent?[name.lexeme]
+                }
+            case .functionType(let args, let ret):
+                let actualArgs = try args.map { argDef -> (TypeSymbol, Bool) in
+                    let (type, isOptional) = argDef
+                    guard let actualType = try self.get(from: type) as? TypeSymbol else {
+                        throw OdoException.NameError(message: "Invalid type in function type arguments.")
+                    }
+                    
+                    return (actualType, isOptional)
+                }
+                
+                let returns: TypeSymbol?
+                if let ret = ret {
+                    guard let found = try get(from: ret) as? TypeSymbol else {
+                        throw OdoException.NameError(message: "Invalid return type in function type arguments.")
+                    }
+                    
+                    returns = found
+                } else {
+                    returns = nil
+                }
+                
+                let funcName = FunctionTypeSymbol.constructFunctionName(ret: returns, params: actualArgs)
+                if let functionType = self[funcName] as? ScriptedFunctionTypeSymbol {
+                    return functionType
+                } else {
+                    let functionType = ScriptedFunctionTypeSymbol(funcName, ret: returns, args: actualArgs)
+                    return topScope.addSymbol(functionType)
                 }
             default:
                 break

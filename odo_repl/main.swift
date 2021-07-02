@@ -6,17 +6,38 @@
 //
 
 import Foundation
-import odo
+import odolib
 
-// Multiline code snipped to run before repl
+// Multiline code snippet to run before repl
 let initialCode = """
-    func fib(n: int) {
-        writeln(n * 2)
+    func testInt(val: int, fn: <int:bool>): bool {
+        return fn(val)
     }
     
-    func optional(o: text = "hey!") {
-        writeln(o, " how are you?")
+    func isPositive(n: int): bool {
+        return n >= 0
     }
+    
+    func earlyReturn() {
+        forange x: 50 {
+            writeln(x)
+            if x == 5 {
+                return
+                writeln("Should not run")
+            }
+            writeln("Should not run after 5")
+        }
+        writeln("Should not run")
+    }
+
+    # Next: Prefix operators
+    var value = 0-2
+    writeln("Is `", value, "` positive? ", testInt(value, isPositive))
+    value = 35
+    writeln("Is `", value, "` positive? ", testInt(value, isPositive))
+    
+    writeln("\n\nTesting early return\n")
+    earlyReturn()
     """
 
 let inter = Odo.Interpreter()
@@ -40,6 +61,11 @@ inter.addNativeFunction("exit", takes: .someOrLess(1)) {args, _ in
         try semAn.validate(arg: args.first!, type: .intType)
     }
     return nil
+}
+
+inter.addNativeFunction("clear") { _, _ in
+    print("\u{001B}[2J")
+    return .null
 }
 
 while running {

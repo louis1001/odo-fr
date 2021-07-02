@@ -7,8 +7,6 @@
 import Foundation
 
 extension Odo {
-    struct CallStackFrame {}
-    
     public class Interpreter {
         let parser = Parser()
         lazy var semAn: SemanticAnalyzer = SemanticAnalyzer(inter: self)
@@ -131,6 +129,8 @@ extension Odo {
                 return try functionDeclaration(name: name, args: args, returns: ret, body: body)
             case .functionCall(let expr, let name, let args):
                 return try functionCall(expr: expr, name: name, args: args)
+            case .returnStatement(let expr):
+                return try returnStatement(expr: expr)
                 
             case .ifStatement(let condition, let trueBody, let falseBody):
                 return try ifStatement(condition: condition, true: trueBody, false: falseBody)
@@ -148,6 +148,9 @@ extension Odo {
             case .continue:
                 currentScope.unwind(to: .continue)
                 break
+                
+            case .functionType(_, _):
+                throw OdoException.SemanticError(message: "Invalid use of function type.")
                 
             case .noOp:
                 break
@@ -433,11 +436,13 @@ extension Odo {
             
             currentScope = bodyScope
             
+            var returnValue: Value = .null
+            
             for st in body {
                 try visit(node: st)
                 if bodyScope.unwindStatus != nil {
                     bodyScope.stopUnwinding()
-                    // Get the value
+                    returnValue = callStack.last?.returnValue ?? .null
                     break
                 }
             }
@@ -445,7 +450,7 @@ extension Odo {
             currentScope = temp
             
             // Return the value
-            return .null
+            return returnValue
         }
         
         func functionDeclaration(name: Token, args: [Node], returns: Node?, body: Node) throws -> Value {
@@ -486,7 +491,17 @@ extension Odo {
             default:
                 fatalError("Oh no")
             }
+        }
+        
+        func returnStatement(expr: Node?) throws -> Value{
+            if let expr = expr {
+                let val = try visit(node: expr)
+                
+                let lastIndex = callStack.count - 1
+                callStack[lastIndex].returnValue = val
+            }
             
+            currentScope.unwind(to: .return)
             return .null
         }
         
@@ -560,10 +575,10 @@ extension Odo {
                 try visit(node: body)
                 if let unwinding = currentScope.unwindStatus {
                     currentScope.stopUnwinding()
-                    if unwinding == .break {
-                        break
-                    } else {
+                    if unwinding == .continue {
                         continue
+                    } else {
+                        break
                     }
                 }
             }
@@ -588,10 +603,10 @@ extension Odo {
                 
                 if let unwinding = currentScope.unwindStatus {
                     currentScope.stopUnwinding()
-                    if unwinding == .break {
-                        break
-                    } else {
+                    if unwinding == .continue {
                         continue
+                    } else {
+                        break
                     }
                 }
             }

@@ -30,6 +30,15 @@ extension Odo {
         }
     }
     
+    struct FunctionDetails {
+        var expectedReturnType: TypeSymbol?
+        var returningAValue: Bool = false
+        
+        mutating func setReturning(to val: Bool) {
+            returningAValue = val
+        }
+    }
+    
     typealias SymbolMap<T> = GenericSymbolMap<Symbol, T>
     
     public class SemanticAnalyzer {
@@ -47,6 +56,12 @@ extension Odo {
         // Symbol Meta Information
         let semanticContexts = SymbolMap<SymbolTable>()
         let functionContexts = GenericSymbolMap<FunctionTypeSymbol, [FunctionTypeSymbol.ArgumentDefinition]>()
+        
+        // Function Details stack
+        var functionDetailsStack: [FunctionDetails] = []
+        var currentFunctionDetails: FunctionDetails! {
+            functionDetailsStack.last
+        }
         
         init(inter: Interpreter) {
             self.interpreter = inter
@@ -105,6 +120,15 @@ extension Odo {
                     }
                 }
             }
+        }
+        
+        func pushFunctionDetails(ret: TypeSymbol? = nil) {
+            functionDetailsStack.append(FunctionDetails(expectedReturnType: ret))
+        }
+        
+        @discardableResult
+        func popFunctionDetails() -> FunctionDetails? {
+            functionDetailsStack.popLast()
         }
         
         func addSemanticContext(for sym: Symbol, scope: SymbolTable) -> SymbolTable {
@@ -171,6 +195,8 @@ extension Odo {
                 return try functionBody(body: statements)
             case .functionCall(let expr, let name, let args):
                 return try functionCall(expr: expr, name: name, args: args)
+            case .returnStatement(let expr):
+                return try returnStatement(expr: expr)
                 
             case .ifStatement(let condition, let trueBody, let falseBody):
                 return try ifStatement(cond: condition, true: trueBody, false: falseBody)
@@ -194,6 +220,9 @@ extension Odo {
                 }
                 // Can break?
                 return .nothing
+                
+            case .functionType(_, _):
+                throw OdoException.SemanticError(message: "Invalid use of function type.")
             
             case .noOp:
                 return .nothing
@@ -561,10 +590,20 @@ extension Odo {
             addLazyCheck(
                 for: functionSymbol!,
                 check: LazyCheck(parent: temp) { _ in
-                    // Handle return type
                     let temp = self.currentScope
                     self.currentScope = funcScope
+                    self.pushFunctionDetails(ret: functionType.returnType)
                     try self.visit(node: body)
+                    
+                    if self.currentFunctionDetails.expectedReturnType != nil {
+                        guard self.currentFunctionDetails.returningAValue else {
+                            throw OdoException.SemanticError(
+                                message: "Function ends without returning a value."
+                            )
+                        }
+                    }
+                    
+                    self.popFunctionDetails()
                     self.currentScope = temp
                 }
             )
@@ -580,9 +619,8 @@ extension Odo {
             guard let _ = function?.type as? FunctionTypeSymbol else {
                 throw OdoException.TypeError(message: "Invalid function call. Value of type `\(function?.name ?? "")` is not a function.")
             }
-            
-            switch function {
-            case let native as NativeFunctionSymbol:
+
+            if let native = function as? NativeFunctionSymbol {
                 switch native.argCount {
                 case .none:
                     guard args.isEmpty else {
@@ -613,9 +651,7 @@ extension Odo {
                 let result = try native.semanticTest(args, self)
                 
                 return NodeResult(tp: result)
-            case let scripted as ScriptedFunctionSymbol:
-                let functionType = scripted.type!
-                
+            } else if let functionType = function?.type as? ScriptedFunctionTypeSymbol {
                 let parametersInTemplate = functionContexts[functionType]!
                 
                 if args.count > parametersInTemplate.count {
@@ -641,11 +677,38 @@ extension Odo {
                         throw OdoException.ValueError(message: "No value for function call argument \(i)")
                     }
                 }
-                return NodeResult(tp: functionType.type)
-            default:
-                break
+                return NodeResult(tp: functionType.returnType)
             }
             
+            return .nothing
+        }
+        
+        func returnStatement(expr: Node?) throws -> NodeResult {
+            if !currentScope.canUnwind(to: .return) {
+                throw OdoException.SemanticError(message: "Use of return statement outside of a function")
+            }
+            if let expr = expr {
+                guard let expected = currentFunctionDetails.expectedReturnType else {
+                    print(expr)
+                    throw OdoException.ValueError(message: "Invalid return in void function.")
+                }
+                let value = try visit(node: expr)
+                if let returningType = value.tp {
+                    if !counts(type: returningType, as: expected) {
+                        throw OdoException.TypeError(
+                            message: "Returning value with invalid type. Expected `\(currentFunctionDetails.expectedReturnType?.name ?? "")` but recieved `\(returningType.name)`"
+                        )
+                    }
+                } else {
+                    throw OdoException.ValueError(message: "Expression in return statement doesn't provide a value")
+                }
+            } else if let expected = currentFunctionDetails.expectedReturnType {
+                throw OdoException.ValueError(message: "Expected value of type `\(expected.name)` in return.")
+            }
+            
+            let lastIndx = functionDetailsStack.count-1
+            functionDetailsStack[lastIndx].setReturning(to: true)
+            currentScope.unwind(to: .return)
             return .nothing
         }
         
@@ -749,7 +812,7 @@ extension Odo {
                 let _ = try varDeclaration(
                     tp: .variable(Token(type: .identifier, lexeme: "int")),
                     name: usingId,
-                    initial: .noOp
+                    initial: nil
                 )
 
                 currentScope[usingId.lexeme, false]!.isInitialized = true
