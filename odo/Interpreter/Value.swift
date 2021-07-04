@@ -157,7 +157,7 @@ extension Odo {
             super.init()
         }
         
-        public override var className: String { "functionValue" }
+        public override var className: String { "function" }
     }
     
     public class NativeFunctionValue : FunctionValue {
@@ -176,7 +176,7 @@ extension Odo {
             }
         }
         
-        public override var className: String { "nativeFunctionValue" }
+        public override var className: String { "nativeFunction" }
     }
     
     public class ScriptedFunctionValue : FunctionValue {
@@ -195,7 +195,15 @@ extension Odo {
 
             self.type = type
         }
+    }
+    
+    public class ModuleValue : Value {
+        let scope: SymbolTable
         
-        public override var className: String { "scriptedFunctionValue" }
+        public override var className: String { "module" }
+        
+        init(scope: SymbolTable) {
+            self.scope = scope
+        }
     }
 }

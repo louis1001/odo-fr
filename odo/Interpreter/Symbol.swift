@@ -168,6 +168,14 @@ extension Odo {
         }
     }
     
+    class ModuleSymbol: Symbol {
+        var value: ModuleValue?
+        init(name: String, value: ModuleValue? = nil) {
+            self.value = value
+            super.init(name: name)
+        }
+    }
+    
     class VarSymbol: Symbol {
         var value: Value?
         
@@ -222,11 +230,8 @@ extension Odo {
             guard let node = node else { return nil }
             switch node {
             case .variable(let name):
-                if let found = symbols[name.lexeme] {
+                if let found = self[name.lexeme] {
                     return found
-                }
-                if andParents {
-                    return parent?[name.lexeme]
                 }
             case .functionType(let args, let ret):
                 let actualArgs = try args.map { argDef -> (TypeSymbol, Bool) in
@@ -256,6 +261,20 @@ extension Odo {
                     let functionType = ScriptedFunctionTypeSymbol(funcName, ret: returns, args: actualArgs)
                     return topScope.addSymbol(functionType)
                 }
+            case .staticAccess(let expr, let name):
+                guard let leftHand = try get(from: expr) else {
+                    throw OdoException.ValueError(message: "Invalid static access on unknown symbol")
+                }
+                
+                switch leftHand {
+                case let asModule as ModuleSymbol:
+                    let moduleContext = asModule.value
+                    return moduleContext?.scope[name.lexeme]
+                default:
+                    // Innaccessible, based on semantic analysis
+                    break
+                }
+                
             default:
                 break
             }

@@ -38,6 +38,10 @@ extension Odo {
         
         case returnStatement(Node?)
         
+        case module(Token, [Node])
+        
+        case staticAccess(Node, Token)
+        
         case ifStatement(Node, Node, Node?)
         
         case loop(Node)

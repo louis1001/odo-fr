@@ -141,7 +141,7 @@ extension Odo {
             return scope
         }
         
-        func addSemanticContext(for sym: FunctionTypeSymbol, called name: String) -> SymbolTable {
+        func addSemanticContext(for sym: Symbol, called name: String) -> SymbolTable {
             addSemanticContext(for: sym, scope: SymbolTable(name, parent: currentScope))
         }
         
@@ -221,6 +221,15 @@ extension Odo {
                 // Can break?
                 return .nothing
                 
+            case .staticAccess:
+                if let sym = try getSymbol(from: node) {
+                    return NodeResult(tp: sym.type)
+                }
+                throw OdoException.SemanticError(message: "Invalid static access")
+                
+            case .module(let name, let body):
+                return try module(name: name, body: body)
+                
             case .functionType(_, _):
                 throw OdoException.SemanticError(message: "Invalid use of function type.")
             
@@ -230,7 +239,59 @@ extension Odo {
         }
         
         func getSymbol(from node: Node) throws -> Symbol? {
-            if let sym = try currentScope.get(from: node) {
+            var result: Symbol? = nil
+
+            switch node {
+            case .variable(let name):
+                if let found = currentScope[name.lexeme] {
+                    result = found
+                }
+            case .functionType(let args, let ret):
+                let actualArgs = try args.map { argDef -> (TypeSymbol, Bool) in
+                    let (type, isOptional) = argDef
+                    guard let actualType = try getSymbol(from: type) as? TypeSymbol else {
+                        throw OdoException.NameError(message: "Invalid type in function type arguments.")
+                    }
+                    
+                    return (actualType, isOptional)
+                }
+                
+                let returns: TypeSymbol?
+                if let ret = ret {
+                    guard let found = try getSymbol(from: ret) as? TypeSymbol else {
+                        throw OdoException.NameError(message: "Invalid return type in function type arguments.")
+                    }
+                    
+                    returns = found
+                } else {
+                    returns = nil
+                }
+                
+                let funcName = FunctionTypeSymbol.constructFunctionName(ret: returns, params: actualArgs)
+                if let functionType = currentScope[funcName] as? ScriptedFunctionTypeSymbol {
+                    result = functionType
+                } else {
+                    let functionType = ScriptedFunctionTypeSymbol(funcName, ret: returns, args: actualArgs)
+                    result = globalScope.addSymbol(functionType)
+                }
+            case .staticAccess(let expr, let name):
+                guard let leftHand = try getSymbol(from: expr) else {
+                    throw OdoException.ValueError(message: "Invalid static access on unknown symbol")
+                }
+                
+                switch leftHand {
+                case let asModule where asModule is ModuleSymbol:
+                    let moduleContext = semanticContexts[asModule]
+                    result = moduleContext![name.lexeme]
+                default:
+                    throw OdoException.NameError(message: "Cannot acces static symbol in this node")
+                }
+                
+            default:
+                break
+            }
+
+            if let sym = result {
                 if !sym.hasBeenChecked { try consumeLazy(symbol: sym) }
                 return sym
             }
@@ -526,7 +587,7 @@ extension Odo {
         }
         
         func functionDeclaration(name: Token, args: [Node], returns: Node?, body: Node) throws -> NodeResult {
-            if currentScope[name.lexeme] != nil {
+            if currentScope[name.lexeme, false] != nil {
                 throw OdoException.NameError(message: "Function called `\(name.lexeme!)` already exists in this scope")
             }
             
@@ -689,7 +750,6 @@ extension Odo {
             }
             if let expr = expr {
                 guard let expected = currentFunctionDetails.expectedReturnType else {
-                    print(expr)
                     throw OdoException.ValueError(message: "Invalid return in void function.")
                 }
                 let value = try visit(node: expr)
@@ -822,6 +882,30 @@ extension Odo {
             
             currentScope = forangeScope.parent!
             
+            return .nothing
+        }
+        
+        func module(name: Token, body: [Node]) throws -> NodeResult {
+            if let moduleInTable = currentScope.addSymbol(ModuleSymbol(name: name.lexeme)) {
+                let moduleContext = addSemanticContext(for: moduleInTable, called: "module_\(moduleInTable.name)_scope")
+                moduleInTable.isInitialized = true
+                
+                addLazyCheck(
+                    for: moduleInTable,
+                    check: LazyCheck(parent: currentScope) { _ in
+                        let temp = self.currentScope
+                        self.currentScope = moduleContext
+                        self.pushLazyScope()
+                        
+                        for statement in body {
+                            try self.visit(node: statement)
+                        }
+                        
+                        try self.popLazyScope()
+                        self.currentScope = temp
+                    }
+                )
+            }
             return .nothing
         }
         

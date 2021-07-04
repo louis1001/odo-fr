@@ -122,6 +122,17 @@ extension Odo {
                 }
 
                 result = .returnStatement(expr)
+            case .module:
+                try eat(tp: .module)
+                ignoreNl()
+                let name = currentToken
+                try eat(tp: .identifier)
+                ignoreNl()
+                try eat(tp: .curlOpen)
+                ignoreNl()
+                let body = try statementList()
+                try eat(tp: .curlClose)
+                result = .module(name, body)
             default:
                 result = try ternaryOp()
             }
@@ -348,7 +359,7 @@ extension Odo {
         }
         
         func declaration(forceType: Bool = false) throws -> Node {
-            // Refactor. var or let syntax instead of c-like
+            // TODO: Constants?
             let name = currentToken
             try eat(tp: .identifier)
             
@@ -490,17 +501,29 @@ extension Odo {
             var result = try factor()
             
 //            while currentToken is one of the postfixes
-            while currentToken.type == .parOpen {
-                try eat(tp: .parOpen)
-                let args = try callArgs()
-                ignoreNl()
-                try eat(tp: .parClose)
-                result = .functionCall(result, nil, args)
+            while currentToken.type == .parOpen ||
+                    currentToken.type == .doubleColon {
+                switch currentToken.type {
+                case .parOpen:
+                    try eat(tp: .parOpen)
+                    let args = try callArgs()
+                    ignoreNl()
+                    try eat(tp: .parClose)
+                    result = .functionCall(result, nil, args)
+                    
+                case .doubleColon:
+                    try eat(tp: .doubleColon)
+                    
+                    result = .staticAccess(result, currentToken)
+                    try eat(tp: .identifier)
+                default:
+                    break
+                }
             }
             
             if currentToken.type == .assignment {
                 switch result {
-                case .variable(_):
+                case .variable, .staticAccess:
                     break
                 default:
                     throw OdoException.SyntaxError(message: "Invalid assignment to non-variable")

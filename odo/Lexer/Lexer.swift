@@ -27,7 +27,9 @@ extension Odo {
             "return": Token(type: .return),
             
             "break": Token(type: .break),
-            "continue": Token(type: .continue)
+            "continue": Token(type: .continue),
+            
+            "module": Token(type: .module)
         ]
         
         private var code: String = ""
@@ -235,7 +237,12 @@ extension Odo {
                 return Token(type: .semiColon)
             case ":":
                 advance()
-                return Token(type: .colon)
+                if currentChar == ":" {
+                    advance()
+                    return Token(type: .doubleColon)
+                } else {
+                    return Token(type: .colon)
+                }
             case ",":
                 advance()
                 return Token(type: .comma)

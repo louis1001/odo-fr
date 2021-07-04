@@ -50,9 +50,12 @@ extension Odo {
             case `func`
             case `return`
             
+            case module
+            
             // Punctuation
             case colon
             case semiColon
+            case doubleColon
             case comma
             case tilde
             case quest

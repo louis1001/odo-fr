@@ -10,34 +10,30 @@ import odolib
 
 // Multiline code snippet to run before repl
 let initialCode = """
-    func testInt(val: int, fn: <int:bool>): bool {
-        return fn(val)
-    }
-    
-    func isPositive(n: int): bool {
-        return n >= 0
-    }
-    
-    func earlyReturn() {
-        forange x: 50 {
-            writeln(x)
-            if x == 5 {
-                return
-                writeln("Should not run")
-            }
-            writeln("Should not run after 5")
-        }
-        writeln("Should not run")
-    }
+    module math {
+        var e = 2.718281828459045235
 
-    # Next: Prefix operators
-    var value = 0-2
-    writeln("Is `", value, "` positive? ", testInt(value, isPositive))
-    value = 35
-    writeln("Is `", value, "` positive? ", testInt(value, isPositive))
+        func exp(n: double): double {
+            # Because of scoping, this uses
+            # pow inside this module
+            return pow(e, n)
+        }
     
-    writeln("\n\nTesting early return\n")
-    earlyReturn()
+        func pow(x: double, n: double = 2): double {
+            var result: double = 1
+
+            forange : n {
+                result = result * x
+            }
+            return result
+        }
+    }
+    
+    var a = 3
+    var b = 5
+    writeln(a, " to the ", b, " is: ", math::pow(a, b))
+    
+    writeln("e to the ", b, " is: ", math::exp(b))
     """
 
 let inter = Odo.Interpreter()

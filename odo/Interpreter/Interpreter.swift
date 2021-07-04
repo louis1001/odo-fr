@@ -149,6 +149,11 @@ extension Odo {
                 currentScope.unwind(to: .continue)
                 break
                 
+            case .staticAccess(let node, let name):
+                return try staticAccess(node: node, name: name)
+            case .module(let name, let body):
+                return try module(name: name, body: body)
+                
             case .functionType(_, _):
                 throw OdoException.SemanticError(message: "Invalid use of function type.")
                 
@@ -351,6 +356,8 @@ extension Odo {
             switch symbol {
             case let varSymbol as VarSymbol:
                 return varSymbol.value!
+            case let moduleSymbol as ModuleSymbol:
+                return moduleSymbol.value!
             case let nativeFuncSymbol as NativeFunctionSymbol:
                 return nativeFuncSymbol.body!
             case let scriptedFuncSymbol as ScriptedFunctionSymbol:
@@ -675,6 +682,43 @@ extension Odo {
             }
             
             currentScope = forangeScope.parent!
+            
+            return .null
+        }
+        
+        func staticAccess(node: Node, name: Token) throws -> Value {
+            let moduleSym = try currentScope.get(from: node) as! ModuleSymbol
+            let moduleValue = moduleSym.value!
+            
+            let sym = moduleValue.scope[name.lexeme]!
+            switch sym {
+            case let variable as VarSymbol:
+                return variable.value!
+            case let scriptedFunction as ScriptedFunctionSymbol:
+                return scriptedFunction.value!
+            case let module as ModuleSymbol:
+                return module.value!
+            default:
+                return .null
+            }
+        }
+        
+        func module(name: Token, body: [Node]) throws -> Value {
+            let moduleName = "module_\(name.lexeme ?? "anonymus")_scope"
+            let moduleScope = SymbolTable(moduleName, parent: currentScope)
+            
+            let moduleValue = ModuleValue(scope: moduleScope)
+            
+            let temp = currentScope
+            currentScope = moduleValue.scope
+            
+            for statement in body {
+                try visit(node: statement)
+            }
+            
+            currentScope = temp
+            
+            currentScope.addSymbol(ModuleSymbol(name: name.lexeme, value: moduleValue))
             
             return .null
         }
