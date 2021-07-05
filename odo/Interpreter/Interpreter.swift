@@ -96,11 +96,11 @@ extension Odo {
             case .block(let body):
                 return try block(body: body)
             case .double(let value):
-                return DoubleValue(value: Double(value.lexeme)!)
+                return DoubleValue(value: Double(value)!)
             case .int(let value):
-                return IntValue(value: Int(value.lexeme)!)
+                return IntValue(value: Int(value)!)
             case .text(let value):
-                return TextValue(value: value.lexeme)
+                return TextValue(value: value)
             case .true:
                 return BoolValue(value: true)
             case .false:
@@ -350,8 +350,8 @@ extension Odo {
             return .null
         }
         
-        func variable(name: Token) throws -> Value {
-            let symbol = currentScope[name.lexeme]
+        func variable(name: String) throws -> Value {
+            let symbol = currentScope[name]
             
             switch symbol {
             case let varSymbol as VarSymbol:
@@ -366,10 +366,10 @@ extension Odo {
                 break
             }
             
-            throw OdoException.NameError(message: "Invalid identifier `\(name.lexeme!)`")
+            throw OdoException.NameError(message: "Invalid identifier `\(name)`")
         }
         
-        func varDeclaration(tp: Node, name: Token, initial: Node?) throws -> Value {
+        func varDeclaration(tp: Node, name: String, initial: Node?) throws -> Value {
             var type = try currentScope.get(from: tp) as! TypeSymbol
 
             var initialValue: Value?
@@ -389,7 +389,7 @@ extension Odo {
                 }
             }
             
-            let newVar: VarSymbol = VarSymbol(name: name.lexeme, type: type, value: initialValue)
+            let newVar: VarSymbol = VarSymbol(name: name, type: type, value: initialValue)
             
             currentScope.addSymbol(newVar)
             
@@ -460,7 +460,7 @@ extension Odo {
             return returnValue
         }
         
-        func functionDeclaration(name: Token, args: [Node], returns: Node?, body: Node) throws -> Value {
+        func functionDeclaration(name: String, args: [Node], returns: Node?, body: Node) throws -> Value {
             let returnType = try currentScope.get(from: returns) as? TypeSymbol
             
             let paramTypes = try getParamTypes(args)
@@ -480,12 +480,12 @@ extension Odo {
             
             let funcValue = ScriptedFunctionValue(type: typeOfFunction, parameters: args, body: body, parentScope: currentScope)
             
-            currentScope.addSymbol(ScriptedFunctionSymbol(name: name.lexeme, type: typeOfFunction, value: funcValue))
+            currentScope.addSymbol(ScriptedFunctionSymbol(name: name, type: typeOfFunction, value: funcValue))
             
             return .null
         }
         
-        func functionCall(expr: Node, name: Token?, args: [Node]) throws -> Value {
+        func functionCall(expr: Node, name: String?, args: [Node]) throws -> Value {
             let function = try visit(node: expr) as! FunctionValue
             
             switch function {
@@ -521,7 +521,7 @@ extension Odo {
             let calleeScope = currentScope
             
             var newDeclarations: [Node] = []
-            var initialValues: [(Token, Value)] = []
+            var initialValues: [(String, Value)] = []
             for (i, parameter) in fn.parameters.enumerated() {
                 if args.count > i {
                     switch parameter {
@@ -547,7 +547,7 @@ extension Odo {
                 try visit(node: decl)
                 
                 if i < initialValues.count {
-                    let varName = initialValues[i].0.lexeme!
+                    let varName = initialValues[i].0
                     let newVar = currentScope[varName]
 
                     // Please remember to update when new kinds
@@ -623,7 +623,7 @@ extension Odo {
             return .null
         }
         
-        func forange(id: Token?, first: Node, second: Node?, body: Node, rev: Bool) throws -> Value {
+        func forange(id: String?, first: Node, second: Node?, body: Node, rev: Bool) throws -> Value {
             let forangeScope = SymbolTable("forange:loop", parent: currentScope)
             forangeScope.unwindConditions = [.break, .continue]
             currentScope = forangeScope
@@ -649,12 +649,12 @@ extension Odo {
             
             if withIdentifier {
                 let _ = try varDeclaration(
-                    tp: .variable(Token(type: .identifier, lexeme: "int")),
+                    tp: .variable("int"),
                     name: id!,
                     initial: .noOp
                 )
 
-                let iterId = currentScope[id!.lexeme, false]! as! VarSymbol
+                let iterId = currentScope[id!, false]! as! VarSymbol
                 iterValue = IntValue(value: 0)
                 iterId.value = iterValue
                 iterId.isInitialized = true
@@ -686,11 +686,11 @@ extension Odo {
             return .null
         }
         
-        func staticAccess(node: Node, name: Token) throws -> Value {
+        func staticAccess(node: Node, name: String) throws -> Value {
             let moduleSym = try currentScope.get(from: node) as! ModuleSymbol
             let moduleValue = moduleSym.value!
             
-            let sym = moduleValue.scope[name.lexeme]!
+            let sym = moduleValue.scope[name]!
             switch sym {
             case let variable as VarSymbol:
                 return variable.value!
@@ -703,8 +703,8 @@ extension Odo {
             }
         }
         
-        func module(name: Token, body: [Node]) throws -> Value {
-            let moduleName = "module_\(name.lexeme ?? "anonymus")_scope"
+        func module(name: String, body: [Node]) throws -> Value {
+            let moduleName = "module_\(name)_scope"
             let moduleScope = SymbolTable(moduleName, parent: currentScope)
             
             let moduleValue = ModuleValue(scope: moduleScope)
@@ -718,7 +718,7 @@ extension Odo {
             
             currentScope = temp
             
-            currentScope.addSymbol(ModuleSymbol(name: name.lexeme, value: moduleValue))
+            currentScope.addSymbol(ModuleSymbol(name: name, value: moduleValue))
             
             return .null
         }

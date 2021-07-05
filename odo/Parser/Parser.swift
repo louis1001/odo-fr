@@ -125,14 +125,14 @@ extension Odo {
             case .module:
                 try eat(tp: .module)
                 ignoreNl()
-                let name = currentToken
+                let name = currentToken.lexeme
                 try eat(tp: .identifier)
                 ignoreNl()
                 try eat(tp: .curlOpen)
                 ignoreNl()
                 let body = try statementList()
                 try eat(tp: .curlClose)
-                result = .module(name, body)
+                result = .module(name!, body)
             default:
                 result = try ternaryOp()
             }
@@ -187,8 +187,9 @@ extension Odo {
             ignoreNl()
             
             if currentToken.type == .identifier {
-                tp = .variable(currentToken)
+                let name = currentToken.lexeme
                 try eat(tp: .identifier)
+                tp = .variable(name!)
                 
                 // while currentToken is ::
                 // make tp a static variable node
@@ -265,9 +266,9 @@ extension Odo {
                 ignoreNl()
             }
             
-            var id: Token?
+            var id: String?
             if currentToken.type == .identifier {
-                id = currentToken
+                id = currentToken.lexeme
                 try! eat(tp: .identifier)
             }
             
@@ -304,7 +305,7 @@ extension Odo {
         
         func funcDeclaration() throws -> Node {
             ignoreNl()
-            let name = currentToken
+            let name = currentToken.lexeme
             try eat(tp: .identifier)
             
             ignoreNl()
@@ -335,7 +336,7 @@ extension Odo {
             let body = try functionBody()
             try eat(tp: .curlClose)
             
-            return .functionDeclaration(name, declarations, returnType, body)
+            return .functionDeclaration(name!, declarations, returnType, body)
         }
         
         func functionBody() throws -> Node {
@@ -360,7 +361,7 @@ extension Odo {
         
         func declaration(forceType: Bool = false) throws -> Node {
             // TODO: Constants?
-            let name = currentToken
+            let name = currentToken.lexeme
             try eat(tp: .identifier)
             
             let type: Node
@@ -370,7 +371,8 @@ extension Odo {
                 
                 type = try getFullType()
             } else {
-                type = .variable(Token(type: .identifier, lexeme: "any"))
+                // TODO: Make this nil, and clear any to be actually generic
+                type = .variable("any")
             }
             
             let assignment: Node?
@@ -382,7 +384,7 @@ extension Odo {
                 assignment = nil
             }
             
-            return .varDeclaration(type, name, assignment)
+            return .varDeclaration(type, name!, assignment)
         }
         
         func ternaryOp() throws -> Node {
@@ -513,9 +515,10 @@ extension Odo {
                     
                 case .doubleColon:
                     try eat(tp: .doubleColon)
-                    
-                    result = .staticAccess(result, currentToken)
+                    let name = currentToken.lexeme
                     try eat(tp: .identifier)
+                    
+                    result = .staticAccess(result, name!)
                 default:
                     break
                 }
@@ -538,17 +541,17 @@ extension Odo {
         func factor() throws -> Node {
             switch currentToken.type {
             case .double:
-                let token = currentToken
+                let name = currentToken.lexeme
                 try eat(tp: .double)
-                return .double(token)
+                return .double(name!)
             case .int:
-                let token = currentToken
+                let name = currentToken.lexeme
                 try eat(tp: .int)
-                return .int(token)
+                return .int(name!)
             case .text:
-                let token = currentToken
+                let name = currentToken.lexeme
                 try eat(tp: .text)
-                return .text(token)
+                return .text(name!)
             case .true:
                 try eat(tp: .true)
                 return .true
@@ -556,9 +559,9 @@ extension Odo {
                 try eat(tp: .false)
                 return .false
             case .identifier:
-                let name = currentToken
+                let name = currentToken.lexeme
                 try eat(tp: .identifier)
-                return .variable(name)
+                return .variable(name!)
             case .parOpen:
                 try eat(tp: .parOpen)
                 ignoreNl()

@@ -230,7 +230,7 @@ extension Odo {
             guard let node = node else { return nil }
             switch node {
             case .variable(let name):
-                if let found = self[name.lexeme] {
+                if let found = self[name] {
                     return found
                 }
             case .functionType(let args, let ret):
@@ -269,7 +269,7 @@ extension Odo {
                 switch leftHand {
                 case let asModule as ModuleSymbol:
                     let moduleContext = asModule.value
-                    return moduleContext?.scope[name.lexeme]
+                    return moduleContext?.scope[name]
                 default:
                     // Innaccessible, based on semantic analysis
                     break

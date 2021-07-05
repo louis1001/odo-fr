@@ -243,7 +243,7 @@ extension Odo {
 
             switch node {
             case .variable(let name):
-                if let found = currentScope[name.lexeme] {
+                if let found = currentScope[name] {
                     result = found
                 }
             case .functionType(let args, let ret):
@@ -282,7 +282,7 @@ extension Odo {
                 switch leftHand {
                 case let asModule where asModule is ModuleSymbol:
                     let moduleContext = semanticContexts[asModule]
-                    result = moduleContext![name.lexeme]
+                    result = moduleContext![name]
                 default:
                     throw OdoException.NameError(message: "Cannot acces static symbol in this node")
                 }
@@ -473,9 +473,9 @@ extension Odo {
             return .nothing
         }
         
-        func variable(name: Token) throws -> NodeResult {
-            guard let sym = currentScope[name.lexeme] else {
-                throw OdoException.NameError(message: "Variable called `\(name.lexeme!)` not defined.")
+        func variable(name: String) throws -> NodeResult {
+            guard let sym = currentScope[name] else {
+                throw OdoException.NameError(message: "Variable called `\(name)` not defined.")
             }
             
             if !sym.hasBeenChecked {
@@ -490,9 +490,9 @@ extension Odo {
             throw OdoException.ValueError(message: "Using variable `\(sym.name)` when is hasn't been initialized.")
         }
         
-        func varDeclaration(tp: Node, name: Token, initial: Node?) throws -> NodeResult {
-            if let _ = currentScope[name.lexeme, false] {
-                throw OdoException.NameError(message: "Variable called `\(name.lexeme ?? "??")` already exists.")
+        func varDeclaration(tp: Node, name: String, initial: Node?) throws -> NodeResult {
+            if let _ = currentScope[name, false] {
+                throw OdoException.NameError(message: "Variable called `\(name)` already exists.")
             }
             
             guard let type = try getSymbol(from: tp) else {
@@ -507,7 +507,7 @@ extension Odo {
                 try consumeLazy(symbol: type)
             }
             
-            let newVar = VarSymbol(name: name.lexeme, type: type)
+            let newVar = VarSymbol(name: name, type: type)
 
             if let initial = initial {
                 let newValue = try visit(node: initial)
@@ -586,9 +586,9 @@ extension Odo {
             return .nothing
         }
         
-        func functionDeclaration(name: Token, args: [Node], returns: Node?, body: Node) throws -> NodeResult {
-            if currentScope[name.lexeme, false] != nil {
-                throw OdoException.NameError(message: "Function called `\(name.lexeme!)` already exists in this scope")
+        func functionDeclaration(name: String, args: [Node], returns: Node?, body: Node) throws -> NodeResult {
+            if currentScope[name, false] != nil {
+                throw OdoException.NameError(message: "Function called `\(name)` already exists in this scope")
             }
             
             let returnType: TypeSymbol?
@@ -628,7 +628,7 @@ extension Odo {
             
             funcScope.parent = currentScope
             
-            let functionSymbol = currentScope.addSymbol(ScriptedFunctionSymbol(name: name.lexeme!, type: functionType))
+            let functionSymbol = currentScope.addSymbol(ScriptedFunctionSymbol(name: name, type: functionType))
             functionSymbol?.isInitialized = true
             
             let temp = currentScope
@@ -640,7 +640,7 @@ extension Odo {
                 let name: String
                 switch par {
                 case .varDeclaration(_, let varName, _):
-                    name = varName.lexeme
+                    name = varName
                 default:
                     name = ""
                 }
@@ -674,7 +674,7 @@ extension Odo {
             return .nothing
         }
         
-        func functionCall(expr: Node, name: Token?, args: [Node]) throws -> NodeResult {
+        func functionCall(expr: Node, name: String?, args: [Node]) throws -> NodeResult {
             let function = try getSymbol(from: expr)
             
             guard let _ = function?.type as? FunctionTypeSymbol else {
@@ -843,7 +843,7 @@ extension Odo {
             return .nothing
         }
         
-        func forange(id: Token?, first: Node, second: Node?, body: Node, rev: Bool) throws -> NodeResult {
+        func forange(id: String?, first: Node, second: Node?, body: Node, rev: Bool) throws -> NodeResult {
             let forangeScope = SymbolTable("forange:loop", parent: currentScope)
             forangeScope.unwindConditions = [.break, .continue]
             currentScope = forangeScope
@@ -870,12 +870,12 @@ extension Odo {
             
             if let usingId = id {
                 let _ = try varDeclaration(
-                    tp: .variable(Token(type: .identifier, lexeme: "int")),
+                    tp: .variable("int"),
                     name: usingId,
                     initial: nil
                 )
 
-                currentScope[usingId.lexeme, false]!.isInitialized = true
+                currentScope[usingId, false]!.isInitialized = true
             }
             
             try visit(node: body)
@@ -885,8 +885,8 @@ extension Odo {
             return .nothing
         }
         
-        func module(name: Token, body: [Node]) throws -> NodeResult {
-            if let moduleInTable = currentScope.addSymbol(ModuleSymbol(name: name.lexeme)) {
+        func module(name: String, body: [Node]) throws -> NodeResult {
+            if let moduleInTable = currentScope.addSymbol(ModuleSymbol(name: name)) {
                 let moduleContext = addSemanticContext(for: moduleInTable, called: "module_\(moduleInTable.name)_scope")
                 moduleInTable.isInitialized = true
                 
