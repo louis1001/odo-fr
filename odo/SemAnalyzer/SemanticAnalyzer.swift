@@ -131,6 +131,7 @@ extension Odo {
             functionDetailsStack.popLast()
         }
         
+        @discardableResult
         func addSemanticContext(for sym: Symbol, scope: SymbolTable) -> SymbolTable {
             semanticContexts[sym] = scope
             
@@ -280,9 +281,9 @@ extension Odo {
                 }
                 
                 switch leftHand {
-                case let asModule where asModule is ModuleSymbol:
+                case let asModule as ModuleSymbol:
                     let moduleContext = semanticContexts[asModule]
-                    result = moduleContext![name]
+                    result = moduleContext![name, false]
                 default:
                     throw OdoException.NameError(message: "Cannot acces static symbol in this node")
                 }

@@ -90,6 +90,21 @@ extension Odo {
             functionSymbol.body = functionValue
         }
         
+        public func addModule(_ name: String) -> NativeModule {
+            let moduleValue = NativeModule(name: name, inter: self)
+            let moduleSymbol = ModuleSymbol(name: name, value: moduleValue)
+            
+            globalTable.addSymbol(
+                moduleSymbol
+            )
+            
+            moduleSymbol.isInitialized = true
+            
+            semAn.addSemanticContext(for: moduleSymbol, scope: moduleValue.scope)
+            
+            return moduleValue
+        }
+        
         @discardableResult
         func visit(node: Node) throws -> Value {
             switch node {
@@ -486,15 +501,15 @@ extension Odo {
         }
         
         func functionCall(expr: Node, name: String?, args: [Node]) throws -> Value {
-            let function = try visit(node: expr) as! FunctionValue
+            let functionSymbol = try currentScope.get(from: expr)
             
-            switch function {
-            case let native as NativeFunctionValue:
+            switch functionSymbol {
+            case let native as NativeFunctionSymbol:
                 let args = try args.map { node in try self.visit(node: node) }
                 
-                return try native.functionBody(args, self)
-            case let scripted as ScriptedFunctionValue:
-                return try callScriptedFunction(scripted, args: args)
+                return try native.body!.functionBody(args, self)
+            case let scripted as ScriptedFunctionSymbol:
+                return try callScriptedFunction(scripted.value!, args: args)
             default:
                 fatalError("Oh no")
             }
@@ -696,6 +711,8 @@ extension Odo {
                 return variable.value!
             case let scriptedFunction as ScriptedFunctionSymbol:
                 return scriptedFunction.value!
+            case let nativeFunction as NativeFunctionSymbol:
+                return nativeFunction.body!
             case let module as ModuleSymbol:
                 return module.value!
             default:

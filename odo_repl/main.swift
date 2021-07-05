@@ -8,27 +8,65 @@
 import Foundation
 import odolib
 
-// Multiline code snippet to run before repl
-let initialCode = """
-    module math {
-        var e = 2.718281828459045235
-
-        func exp(n: double): double {
-            # Because of scoping, this uses
-            # pow inside this module
-            return pow(e, n)
-        }
+func prepareStd(on interpreter: Odo.Interpreter) {
+    let mathModule = interpreter.addModule("math")
+    mathModule.add("e", value: M_E)
+    mathModule.add("pi", value: .pi)
     
-        func pow(x: double, n: double = 2): double {
-            var result: double = 1
-
-            forange : n {
-                result = result * x
-            }
-            return result
+    // TODO: Simplify this api
+    //       maybe define the args as (.intType, 2),
+    //       so that the default value indicates an optional
+    
+    // IDEA:
+    //      An enum with the kinds of arguments:
+    //      .type(TypeSymbol) <- required, just the type passed
+    //      .int <- required, int
+    //      .intOr(Int) <- optional
+    mathModule.add("pow", takes: .someOrLess(2)) { args, _ in
+        let arg1 = (args.first! as! Odo.PrimitiveValue).asDouble()!
+        let power: Double
+        
+        if args.count > 1 {
+            power = (args[1] as! Odo.PrimitiveValue).asDouble()!
+        } else {
+            power = 2
         }
+
+        return .literal(pow(arg1, power))
+    } validation: { args, semAn in
+        try semAn.validate(arg: args.first!, type: .doubleType)
+
+        if args.count > 1 {
+            try semAn.validate(arg: args[1], type: .doubleType)
+        }
+        return .doubleType
     }
     
+    mathModule.add("exp", takes: .some(1)) { args, _ in
+        let arg1 = (args.first! as! Odo.PrimitiveValue).asDouble()!
+        return .literal(pow(M_E, arg1))
+    } validation: { args, semAn in
+        try semAn.validate(arg: args.first!, type: .doubleType)
+        return .doubleType
+    }
+    
+    let io = interpreter.addModule("io")
+    
+    // TODO: Maybe remove the one from the global scope?
+    // Adds some kind of "puts" that only takes a string
+    // Just to make sure the language could be usable without
+    //  a standard library
+    io.add("writeln", takes: .any) { args, _ in
+        for arg in args {
+            print(arg, terminator: "")
+        }
+        print()
+        return .null
+    }
+}
+
+// Multiline code snippet to run before repl
+let initialCode = """
     var a = 3
     var b = 5
     writeln(a, " to the ", b, " is: ", math::pow(a, b))
@@ -39,6 +77,8 @@ let initialCode = """
 let inter = Odo.Interpreter()
 var running = true
 var exitCode: Int32?
+
+prepareStd(on: inter)
 
 do {
     let _ = try inter.repl(code: initialCode)

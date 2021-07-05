@@ -44,6 +44,22 @@ extension Odo {
         public func toText() -> String {
             return description
         }
+        
+        public static func literal(_ value: Int) -> IntValue {
+            return IntValue(value: value)
+        }
+        
+        public static func literal(_ value: Double) -> DoubleValue {
+            return DoubleValue(value: value)
+        }
+        
+        public static func literal(_ value: Bool) -> BoolValue {
+            return BoolValue(value: value)
+        }
+        
+        public static func literal(_ value: String) -> TextValue {
+            return TextValue(value: value)
+        }
     }
     
     public class PrimitiveValue : Value {
@@ -204,6 +220,69 @@ extension Odo {
         
         init(scope: SymbolTable) {
             self.scope = scope
+        }
+    }
+    
+    public class NativeModule: ModuleValue {
+        
+        var analyzer: SemanticAnalyzer
+        
+        init(name: String, inter: Interpreter) {
+            analyzer = inter.semAn
+            super.init(scope: SymbolTable(name, parent: inter.globalTable))
+        }
+        
+        public func add(_ name: String, value: Int) {
+            scope.addSymbol(
+                VarSymbol(
+                    name: name,
+                    type: .intType,
+                    value: IntValue(value: value)
+                )
+            )
+        }
+        
+        public func add(_ name: String, value: Double) {
+            scope.addSymbol(
+                VarSymbol(
+                    name: name,
+                    type: .doubleType,
+                    value: DoubleValue(value: value)
+                )
+            )
+        }
+        
+        public func add(_ name: String, value: String) {
+            scope.addSymbol(
+                VarSymbol(
+                    name: name,
+                    type: .textType,
+                    value: TextValue(value: value)
+                )
+            )
+        }
+        
+        public func add(_ name: String, value: Bool) {
+            scope.addSymbol(
+                VarSymbol(
+                    name: name,
+                    type: .boolType,
+                    value: BoolValue(value: value)
+                )
+            )
+        }
+        
+        public func add(
+            _ name: String,
+            takes args: NativeFunctionSymbol.ArgType = .none,
+            body: @escaping ([Value], Interpreter) throws -> Value,
+            validation: (([Node], SemanticAnalyzer) throws -> TypeSymbol?)? = nil) {
+            
+            let functionSymbol = NativeFunctionSymbol(name: name, takes: args, validation: validation)
+            scope.addSymbol(functionSymbol)
+            
+            let functionValue = NativeFunctionValue(body: body)
+            functionSymbol.body = functionValue
         }
     }
 }
