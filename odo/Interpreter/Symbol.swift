@@ -20,7 +20,7 @@ extension Odo {
         
         var type: TypeSymbol?
         
-        var name: String
+        public let name: String
         
         var isType: Bool { false }
         
@@ -136,10 +136,56 @@ extension Odo {
     
     public class NativeFunctionSymbol : Symbol {
         public enum ArgType {
-            case none
-            case any
+            case nothing
+            case whatever
             case some(UInt)
             case someOrLess(UInt)
+        }
+        
+        public enum ArgumentDescription {
+            case any
+            case int
+            case double
+            case bool
+            case text
+            case intOr(Int)
+            case doubleOr(Double)
+            case boolOr(Bool)
+            case textOr(String)
+            
+            func get() -> ScriptedFunctionTypeSymbol.ArgumentDefinition {
+                switch self {
+                case .any:                  return (.anyType,       false)
+                case .int, .intOr:          return (.intType,    isOptional())
+                case .double, .doubleOr:    return (.doubleType, isOptional())
+                case .bool, .boolOr:        return (.boolType,   isOptional())
+                case .text, .textOr:        return (.textType,   isOptional())
+                }
+            }
+            
+            func getValue() -> Value? {
+                switch self {
+                case .any, .int, .double, .bool, .text: return nil
+                case .intOr(let value):    return .literal(value)
+                case .doubleOr(let value): return .literal(value)
+                case .boolOr(let value):   return .literal(value)
+                case .textOr(let value):   return .literal(value)
+                }
+            }
+            
+            func isOptional() -> Bool {
+                switch self {
+                case .any:      return false
+                case .int:      return false
+                case .double:   return false
+                case .bool:     return false
+                case .text:     return false
+                case .intOr:    return true
+                case .doubleOr: return true
+                case .boolOr:   return true
+                case .textOr:   return true
+                }
+            }
         }
 
         public typealias NativeFunctionValidation = ([Node], SemanticAnalyzer) throws -> TypeSymbol?
@@ -152,7 +198,7 @@ extension Odo {
         
         var argCount: ArgType
         
-        init(name: String, takes args: ArgType = .none, validation: NativeFunctionValidation?) {
+        init(name: String, takes args: ArgType = .nothing, validation: NativeFunctionValidation?) {
             if let validation = validation { semanticTest = validation }
             argCount = args
             super.init(name: name, type: NativeFunctionTypeSymbol.shared)

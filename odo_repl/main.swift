@@ -8,60 +8,54 @@
 import Foundation
 import odolib
 
+// MARK: - STDLib definition
+
 func prepareStd(on interpreter: Odo.Interpreter) {
+    
+    // MARK: Global
+    interpreter.addFunction("typeof", takes: .some(1)) { args, _ in
+        let first = args.first!.type
+        return .literal(first?.name ?? "<no type>")
+    }
+    
+    // MARK: Math
     let mathModule = interpreter.addModule("math")
     mathModule.add("e", value: M_E)
     mathModule.add("pi", value: .pi)
-    
-    // TODO: Simplify this api
-    //       maybe define the args as (.intType, 2),
-    //       so that the default value indicates an optional
-    
-    // IDEA:
-    //      An enum with the kinds of arguments:
-    //      .type(TypeSymbol) <- required, just the type passed
-    //      .int <- required, int
-    //      .intOr(Int) <- optional
-    mathModule.add("pow", takes: .someOrLess(2)) { args, _ in
-        let arg1 = (args.first! as! Odo.PrimitiveValue).asDouble()!
-        let power: Double
+
+    mathModule.addFunction("pow", takes: [.double, .doubleOr(2)], returns: .doubleType) { args, _ in
+        let x = (args[0] as! Odo.PrimitiveValue).asDouble()!
+        let n = (args[1] as! Odo.PrimitiveValue).asDouble()!
         
-        if args.count > 1 {
-            power = (args[1] as! Odo.PrimitiveValue).asDouble()!
-        } else {
-            power = 2
-        }
-
-        return .literal(pow(arg1, power))
-    } validation: { args, semAn in
-        try semAn.validate(arg: args.first!, type: .doubleType)
-
-        if args.count > 1 {
-            try semAn.validate(arg: args[1], type: .doubleType)
-        }
-        return .doubleType
+        return .literal(pow(x, n))
     }
     
-    mathModule.add("exp", takes: .some(1)) { args, _ in
+    mathModule.addFunction("exp", takes: [.double], returns: .doubleType) { args, _ in
         let arg1 = (args.first! as! Odo.PrimitiveValue).asDouble()!
         return .literal(pow(M_E, arg1))
-    } validation: { args, semAn in
-        try semAn.validate(arg: args.first!, type: .doubleType)
-        return .doubleType
     }
     
+    // MARK: IO
     let io = interpreter.addModule("io")
-    
     // TODO: Maybe remove the one from the global scope?
     // Adds some kind of "puts" that only takes a string
     // Just to make sure the language could be usable without
     //  a standard library
-    io.add("writeln", takes: .any) { args, _ in
+    
+    func write(_ args: [Odo.Value], _ inter: Odo.Interpreter) -> Void {
         for arg in args {
             print(arg, terminator: "")
         }
+    }
+    
+    io.addVoidFunction("write", takes: .whatever, body: write)
+    io.addVoidFunction("writeln", takes: .whatever) {
+        write($0, $1)
         print()
-        return .null
+    }
+    
+    io.addVoidFunction("clear") {
+        print("\u{001B}[2J")
     }
 }
 
@@ -69,9 +63,11 @@ func prepareStd(on interpreter: Odo.Interpreter) {
 let initialCode = """
     var a = 3
     var b = 5
-    writeln(a, " to the ", b, " is: ", math::pow(a, b))
+    io::writeln(a, " to the ", b, " is: ", math::pow(a, b))
     
-    writeln("e to the ", b, " is: ", math::exp(b))
+    io::writeln("e to the ", b, " is: ", math::exp(b))
+    
+    
     """
 
 let inter = Odo.Interpreter()
@@ -86,22 +82,11 @@ do {
     print(err.description())
 }
 
-inter.addNativeFunction("exit", takes: .someOrLess(1)) {args, _ in
-    if let arg = (args.first as? Odo.PrimitiveValue)?.asDouble() {
-        exitCode = Int32(arg)
-    }
+inter.addVoidFunction("exit", takes: [.intOr(0)]) { args, _ in
+    let arg = (args.first as! Odo.IntValue).asInt()
+    exitCode = Int32(arg)
+    
     running = false
-    return .null
-} validation: { args, semAn in
-    if !args.isEmpty {
-        try semAn.validate(arg: args.first!, type: .intType)
-    }
-    return nil
-}
-
-inter.addNativeFunction("clear") { _, _ in
-    print("\u{001B}[2J")
-    return .null
 }
 
 while running {

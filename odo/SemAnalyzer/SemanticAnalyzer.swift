@@ -682,38 +682,7 @@ extension Odo {
                 throw OdoException.TypeError(message: "Invalid function call. Value of type `\(function?.name ?? "")` is not a function.")
             }
 
-            if let native = function as? NativeFunctionSymbol {
-                switch native.argCount {
-                case .none:
-                    guard args.isEmpty else {
-                        throw OdoException.ValueError(
-                            message: "Function `\(native.name)` takes no arguments."
-                        )
-                    }
-                case .any:
-                    break
-                case .some(let x):
-                    guard args.count == x else {
-                        throw OdoException.ValueError(
-                            message: "Function `\(native.name)` takes `\(x)` arguments."
-                        )
-                    }
-                case .someOrLess(let x):
-                    guard args.count <= x else {
-                        throw OdoException.ValueError(
-                            message: "Function `\(native.name)` takes `\(x)` arguments or less."
-                        )
-                    }
-                }
-                
-                for arg in args {
-                    try visit(node: arg)
-                }
-                
-                let result = try native.semanticTest(args, self)
-                
-                return NodeResult(tp: result)
-            } else if let functionType = function?.type as? ScriptedFunctionTypeSymbol {
+            if let functionType = function?.type as? ScriptedFunctionTypeSymbol {
                 let parametersInTemplate = functionContexts[functionType]!
                 
                 if args.count > parametersInTemplate.count {
@@ -740,6 +709,37 @@ extension Odo {
                     }
                 }
                 return NodeResult(tp: functionType.returnType)
+            } else if let native = function as? NativeFunctionSymbol {
+                switch native.argCount {
+                case .nothing:
+                    guard args.isEmpty else {
+                        throw OdoException.ValueError(
+                            message: "Function `\(native.name)` takes no arguments."
+                        )
+                    }
+                case .whatever:
+                    break
+                case .some(let x):
+                    guard args.count == x else {
+                        throw OdoException.ValueError(
+                            message: "Function `\(native.name)` takes `\(x)` arguments."
+                        )
+                    }
+                case .someOrLess(let x):
+                    guard args.count <= x else {
+                        throw OdoException.ValueError(
+                            message: "Function `\(native.name)` takes `\(x)` arguments or less."
+                        )
+                    }
+                }
+                
+                for arg in args {
+                    try visit(node: arg)
+                }
+                
+                let result = try native.semanticTest(args, self)
+                
+                return NodeResult(tp: result)
             }
             
             return .nothing

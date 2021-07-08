@@ -10,7 +10,7 @@ import Foundation
 extension Odo {
     public class Value: Identifiable, CustomStringConvertible {
         public let id = UUID()
-        final var type: TypeSymbol!
+        public final var type: TypeSymbol!
         var isPrimitive: Bool { false }
         
         var address: UnsafeMutableRawPointer {
@@ -94,6 +94,8 @@ extension Odo {
         public override func asDouble() -> Double? {
             return Double(value)
         }
+        
+        public final func asInt() -> Int { value }
 
         init(value: Int) {
             self.value = value
@@ -182,6 +184,8 @@ extension Odo {
         var functionBody: NativeFunctionCallback = { _, _ in
             .null
         }
+        
+        var optionalArgs: [Value?]? = nil
         
         init(type: NativeFunctionTypeSymbol = .shared, body: NativeFunctionCallback? = nil) {
             super.init()
@@ -272,9 +276,9 @@ extension Odo {
             )
         }
         
-        public func add(
+        public func addFunction(
             _ name: String,
-            takes args: NativeFunctionSymbol.ArgType = .none,
+            takes args: NativeFunctionSymbol.ArgType = .nothing,
             body: @escaping ([Value], Interpreter) throws -> Value,
             validation: (([Node], SemanticAnalyzer) throws -> TypeSymbol?)? = nil) {
             
@@ -284,5 +288,61 @@ extension Odo {
             let functionValue = NativeFunctionValue(body: body)
             functionSymbol.body = functionValue
         }
+        
+        public func addVoidFunction(
+            _ name: String,
+            takes args: NativeFunctionSymbol.ArgType = .nothing,
+            body: @escaping ([Value], Interpreter) throws -> Void,
+            validation: (([Node], SemanticAnalyzer) throws -> Void)? = nil) {
+            
+            addFunction(
+                name,
+                takes: args,
+                body: {val, inter -> Value in
+                    try body(val, inter)
+                    return .null
+                },
+                validation: validation == nil
+                    ? nil
+                    : { try validation!($0, $1); return nil} )
+        }
+        
+        public func addFunction(
+            _ name: String,
+            takes: [NativeFunctionSymbol.ArgumentDescription] = [],
+            returns: TypeSymbol?,
+            body: @escaping ([Value], Interpreter) throws -> Value
+        ) {
+            let args = takes.map { $0.get() }
+            let functionType = ScriptedFunctionTypeSymbol(ret: returns, args: args)
+            let functionSymbol = NativeFunctionSymbol(name: name, validation: nil)
+            functionSymbol.type = functionType
+            
+            scope.addSymbol(functionSymbol)
+            let _ = analyzer.addFunctionSemanticContext(for: functionType, name: functionType.name, params: args)
+            
+            let functionValue = NativeFunctionValue(body: body)
+            functionValue.optionalArgs = takes.map { $0.getValue() }
+            functionSymbol.body = functionValue
+        }
+        
+        public func addVoidFunction(
+            _ name: String,
+            takes: [NativeFunctionSymbol.ArgumentDescription] = [],
+            body: @escaping ([Value], Interpreter) throws -> Void
+        ) {
+            addFunction(name, takes: takes, returns: nil){
+                try body($0, $1)
+                return .null
+            }
+        }
+        
+        public func addVoidFunction(
+            _ name: String,
+            body: @escaping(() throws -> Void)
+        ) {
+            addVoidFunction(name, body: { _, _ in try body() })
+        }
+        
     }
 }

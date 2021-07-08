@@ -32,41 +32,6 @@ extension Odo {
             
             replScope = SymbolTable("repl", parent: globalTable)
             replScope.addSymbol(VarSymbol(name: "_", type: .anyType))
-            
-            addNativeFunction("write", takes: .any) { values, _ in
-                for val in values {
-                    print(val.toText(), terminator: "")
-                }
-                return .null
-            }
-            
-            addNativeFunction("writeln", takes: .any) { values, _ in
-                for val in values {
-                    print(val.toText(), terminator: "")
-                }
-                print()
-                return .null
-            }
-            
-            addNativeFunction("pow", takes: .someOrLess(2)) { args, _ in
-                let arg1 = (args.first! as! PrimitiveValue).asDouble()!
-                let power: Double
-                
-                if args.count > 1 {
-                    power = (args[1] as! PrimitiveValue).asDouble()!
-                } else {
-                    power = 2
-                }
-
-                return DoubleValue(value: pow(arg1, power))
-            } validation: { args, semAn in
-                try semAn.validate(arg: args.first!, type: .doubleType)
-
-                if args.count > 1 {
-                    try semAn.validate(arg: args[1], type: .doubleType)
-                }
-                return .doubleType
-            }
         }
         
         /// Create a function accessible from runtime Odo code
@@ -77,9 +42,9 @@ extension Odo {
         ///   - body: The closure that is executed. It takes it's arguments as [Value]
         ///   - validation: The semantic validation of arguments and return type, recieves the list of Node and the Semantic analyzer.
         ///   Preferably gives static return type for all calls.
-        public func addNativeFunction(
+        public func addFunction(
             _ name: String,
-            takes args: NativeFunctionSymbol.ArgType = .none,
+            takes args: NativeFunctionSymbol.ArgType = .nothing,
             body: @escaping ([Value], Interpreter) throws -> Value,
             validation: (([Node], SemanticAnalyzer) throws -> TypeSymbol?)? = nil) {
             
@@ -88,6 +53,63 @@ extension Odo {
             
             let functionValue = NativeFunctionValue(body: body)
             functionSymbol.body = functionValue
+        }
+        
+        public func addVoidFunction(
+            _ name: String,
+            takes args: NativeFunctionSymbol.ArgType = .nothing,
+            body: @escaping ([Value], Interpreter) throws -> Void,
+            validation: (([Node], SemanticAnalyzer) throws -> Void)? = nil) {
+            addFunction(
+                name,
+                takes: args,
+                body: {val, inter -> Value in
+                    try body(val, inter)
+                    return .null
+                },
+                validation: validation == nil
+                    ? nil
+                    : { try validation!($0, $1); return nil }
+            )
+        }
+        
+        // TODO: Centralize all these functions,
+        //       so I don't need to repeat so much code in native module.
+        public func addFunction(
+            _ name: String,
+            takes: [NativeFunctionSymbol.ArgumentDescription] = [],
+            returns: TypeSymbol?,
+            body: @escaping ([Value], Interpreter) throws -> Value
+        ) {
+            let args = takes.map { $0.get() }
+            let functionType = ScriptedFunctionTypeSymbol(ret: returns, args: args)
+            let functionSymbol = NativeFunctionSymbol(name: name, validation: nil)
+            functionSymbol.type = functionType
+            
+            globalTable.addSymbol(functionSymbol)
+            let _ = semAn.addFunctionSemanticContext(for: functionType, name: functionType.name, params: args)
+            
+            let functionValue = NativeFunctionValue(body: body)
+            functionValue.optionalArgs = takes.map { $0.getValue() }
+            functionSymbol.body = functionValue
+        }
+        
+        public func addVoidFunction(
+            _ name: String,
+            takes: [NativeFunctionSymbol.ArgumentDescription] = [],
+            body: @escaping ([Value], Interpreter) throws -> Void
+        ) {
+            addFunction(name, takes: takes, returns: nil){
+                try body($0, $1)
+                return .null
+            }
+        }
+        
+        public func addVoidFunction(
+            _ name: String,
+            body: @escaping(() throws -> Void)
+        ) {
+            addVoidFunction(name, body: { _, _ in try body() })
         }
         
         public func addModule(_ name: String) -> NativeModule {
@@ -504,10 +526,24 @@ extension Odo {
             let functionSymbol = try currentScope.get(from: expr)
             
             switch functionSymbol {
-            case let native as NativeFunctionSymbol:
+            case let nativeSym as NativeFunctionSymbol:
                 let args = try args.map { node in try self.visit(node: node) }
                 
-                return try native.body!.functionBody(args, self)
+                let native = nativeSym.body!
+                var actualArgs: [Value] = args
+                
+                if let optionals = native.optionalArgs {
+                    actualArgs = []
+                    for (i, val) in optionals.enumerated() {
+                        if i < args.count {
+                            actualArgs.append(args[i])
+                        } else {
+                            actualArgs.append(val!)
+                        }
+                    }
+                }
+                
+                return try native.functionBody(actualArgs, self)
             case let scripted as ScriptedFunctionSymbol:
                 return try callScriptedFunction(scripted.value!, args: args)
             default:
