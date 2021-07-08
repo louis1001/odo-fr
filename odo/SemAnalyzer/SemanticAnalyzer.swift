@@ -182,6 +182,14 @@ extension Odo {
                 return try relationalOp(lhs: lhs, op: op, rhs: rhs)
             case .ternaryOp(let condition, let trueCase, let falseCase):
                 return try ternaryOp(condition: condition, true: trueCase, false: falseCase)
+                
+            case .unaryOp(_, let expr):
+                let result = try visit(node: expr)
+                guard result.tp?.isNumeric ?? false else {
+                    throw OdoException.TypeError(message: "Invalid unary operator, can only be used in numeric values")
+                }
+                
+                return result
 
             case .assignment(let lhs, let val):
                 return try assignment(to: lhs, val: val)

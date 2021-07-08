@@ -28,6 +28,8 @@ extension Odo {
         
         case ternaryOp(Node, Node, Node)
         
+        case unaryOp(Token, Node)
+        
         case variable(String)
         case varDeclaration(Node, String, Node?)
         case assignment(Node, Node)

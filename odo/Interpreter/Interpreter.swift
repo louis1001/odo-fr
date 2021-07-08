@@ -153,6 +153,13 @@ extension Odo {
             case .ternaryOp(let condition, let trueCase, let falseCase):
                 return try ternaryOp(condition: condition, true: trueCase, false: falseCase)
                 
+            case .unaryOp(let op, let expr):
+                let mult = op.type == .plus ? 1 : -1
+                let result = try visit(node: expr) as! PrimitiveValue
+                let value = result.asDouble()!
+                if result.isInt { return IntValue(value: mult * Int(value)) }
+                else { return DoubleValue(value: Double(mult) * value) }
+                
             case .assignment(let lhs, let val):
                 return try assignment(to: lhs, val: val)
             case .variable(let name):

@@ -569,6 +569,10 @@ extension Odo {
                 ignoreNl()
                 try eat(tp: .parClose)
                 return innerFactor
+            case .plus, .minus:
+                let op = currentToken
+                try eat(tp: currentToken.type)
+                return .unaryOp(op, try postfix())
             default:
                 break
             }
