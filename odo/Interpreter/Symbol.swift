@@ -30,14 +30,18 @@ extension Odo {
         
         var onDestruction: (()->Void)?
         
-        init(name: String, type: TypeSymbol) {
+        let isConstant: Bool
+        
+        init(name: String, type: TypeSymbol, isConstant: Bool = false) {
             self.name = name
             self.type = type
+            self.isConstant = isConstant
         }
         
-        fileprivate init(name: String) {
+        fileprivate init(name: String, isConstant: Bool = false) {
             self.type = nil
             self.name = name
+            self.isConstant = isConstant
         }
         
         deinit {
@@ -73,15 +77,15 @@ extension Odo {
         
         fileprivate(set) var isNumeric = false
         
-        override init(name: String, type: TypeSymbol?) {
-            super.init(name: name)
+        override init(name: String, type: TypeSymbol?, isConstant: Bool = true) {
+            super.init(name: name, isConstant: isConstant)
         }
     }
     
     public class PrimitiveTypeSymbol: TypeSymbol {
         override var isPrimitive: Bool { true }
-        override init(name: String, type tp: TypeSymbol? = nil) {
-            super.init(name: name, type: tp)
+        init(name: String, type tp: TypeSymbol? = nil) {
+            super.init(name: name, type: tp, isConstant: true)
         }
     }
     
@@ -110,8 +114,8 @@ extension Odo {
             return result
         }
         
-        fileprivate override init(name: String, type tp: TypeSymbol? = nil) {
-            super.init(name: name, type: tp)
+        fileprivate init(name: String, type tp: TypeSymbol? = nil) {
+            super.init(name: name, type: tp, isConstant: true)
         }
     }
     
@@ -201,7 +205,7 @@ extension Odo {
         init(name: String, takes args: ArgType = .nothing, validation: NativeFunctionValidation?) {
             if let validation = validation { semanticTest = validation }
             argCount = args
-            super.init(name: name, type: NativeFunctionTypeSymbol.shared)
+            super.init(name: name, type: NativeFunctionTypeSymbol.shared, isConstant: true)
         }
     }
     
@@ -218,16 +222,16 @@ extension Odo {
         var value: ModuleValue?
         init(name: String, value: ModuleValue? = nil) {
             self.value = value
-            super.init(name: name)
+            super.init(name: name, isConstant: true)
         }
     }
     
     class VarSymbol: Symbol {
         var value: Value?
         
-        init(name: String, type: TypeSymbol, value: Value? = nil) {
+        init(name: String, type: TypeSymbol, value: Value? = nil, isConstant: Bool = false) {
             self.value = value
-            super.init(name: name, type: type)
+            super.init(name: name, type: type, isConstant: isConstant)
             isInitialized = value != nil
         }
     }
@@ -372,6 +376,18 @@ extension Odo {
             table.symbols = self.symbols
             
             return table
+        }
+        
+        func forEach(body: (String, Symbol) -> Void) {
+            for (name, sym) in symbols {
+                body(name, sym)
+            }
+        }
+        
+        func forEach(body: (String, Symbol) throws -> Void) rethrows {
+            for (name, sym) in symbols {
+                try body(name, sym)
+            }
         }
     }
     

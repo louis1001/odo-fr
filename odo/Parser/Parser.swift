@@ -80,6 +80,9 @@ extension Odo {
             case .var:
                 try eat(tp: .var)
                 result = try declaration()
+            case .const:
+                try eat(tp: .const)
+                result = try constDeclaration()
             case .if:
                 try eat(tp: .if)
                 result = try ifStatement()
@@ -359,8 +362,36 @@ extension Odo {
             return argsList
         }
         
+        func constDeclaration() throws -> Node {
+            let name = currentToken.lexeme
+            try eat(tp: .identifier)
+            
+            let type: Node
+            
+            let withType = currentToken.type == .colon
+            
+            if withType {
+                try eat(tp: .colon)
+                
+                type = try getFullType()
+            } else {
+                // TODO: Make this nil, and clear any to be actually generic
+                type = .variable("any")
+            }
+            
+            let assignment: Node?
+            if !withType || currentToken.type == .assignment {
+                try eat(tp: .assignment)
+                ignoreNl()
+                assignment = try ternaryOp()
+            } else {
+                assignment = nil
+            }
+            
+            return .varDeclaration(type, name!, assignment, true)
+        }
+        
         func declaration(forceType: Bool = false) throws -> Node {
-            // TODO: Constants?
             let name = currentToken.lexeme
             try eat(tp: .identifier)
             

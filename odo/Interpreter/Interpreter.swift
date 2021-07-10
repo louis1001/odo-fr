@@ -164,8 +164,8 @@ extension Odo {
                 return try assignment(to: lhs, val: val)
             case .variable(let name):
                 return try variable(name: name)
-            case .varDeclaration(let tp, let name, let initial):
-                return try varDeclaration(tp: tp, name: name, initial: initial)
+            case .varDeclaration(let tp, let name, let initial, let constant):
+                return try varDeclaration(tp: tp, name: name, initial: initial, constant: constant)
                 
             case .functionBody(let args):
                 return try functionBody(body: args)
@@ -413,7 +413,7 @@ extension Odo {
             throw OdoException.NameError(message: "Invalid identifier `\(name)`")
         }
         
-        func varDeclaration(tp: Node, name: String, initial: Node?) throws -> Value {
+        func varDeclaration(tp: Node, name: String, initial: Node?, constant: Bool) throws -> Value {
             var type = try currentScope.get(from: tp) as! TypeSymbol
 
             var initialValue: Value?
@@ -433,7 +433,7 @@ extension Odo {
                 }
             }
             
-            let newVar: VarSymbol = VarSymbol(name: name, type: type, value: initialValue)
+            let newVar: VarSymbol = VarSymbol(name: name, type: type, value: initialValue, isConstant: constant)
             
             currentScope.addSymbol(newVar)
             
@@ -468,7 +468,7 @@ extension Odo {
             var result: [FunctionTypeSymbol.ArgumentDefinition] = []
             for param in params {
                 switch param {
-                case .varDeclaration(let type, _, let initial):
+                case .varDeclaration(let type, _, let initial, _):
                     let tp = try currentScope.get(from: type) as! TypeSymbol
                     let isOptional = initial != nil
                     result.append((tp, isOptional))
@@ -583,7 +583,7 @@ extension Odo {
             for (i, parameter) in fn.parameters.enumerated() {
                 if args.count > i {
                     switch parameter {
-                    case .varDeclaration(_, let name, _):
+                    case .varDeclaration(_, let name, _, _):
                         let newValue = try visit(node: args[i])
                         // TODO: Make sure copyable works
                         initialValues.append((name, newValue))
@@ -709,7 +709,8 @@ extension Odo {
                 let _ = try varDeclaration(
                     tp: .variable("int"),
                     name: id!,
-                    initial: .noOp
+                    initial: .noOp,
+                    constant: true
                 )
 
                 let iterId = currentScope[id!, false]! as! VarSymbol

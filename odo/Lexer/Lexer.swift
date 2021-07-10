@@ -16,6 +16,7 @@ extension Odo {
             "and": Token(type: .and),
             "or": Token(type: .or),
             "var": Token(type: .var),
+            "const": Token(type: .const),
             "if": Token(type: .if),
             "else": Token(type: .else),
             

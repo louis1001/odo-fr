@@ -195,8 +195,8 @@ extension Odo {
                 return try assignment(to: lhs, val: val)
             case .variable(let name):
                 return try variable(name: name)
-            case .varDeclaration(let tp, let name, let initial):
-                return try varDeclaration(tp: tp, name: name, initial: initial)
+            case .varDeclaration(let tp, let name, let initial, let constant):
+                return try varDeclaration(tp: tp, name: name, initial: initial, constant: constant)
                 
             case .functionDeclaration(let name, let args, let returnType, let body):
                 return try functionDeclaration(name: name, args: args, returns: returnType, body: body)
@@ -466,6 +466,10 @@ extension Odo {
                     }
                     
                     sym.isInitialized = true
+                } else {
+                    if sym.isConstant {
+                        throw OdoException.SemanticError(message: "Invalid assignment to constant `\(sym.name)`.")
+                    }
                 }
                 
                 if !counts(type: newType, as: sym.type!) {
@@ -499,7 +503,7 @@ extension Odo {
             throw OdoException.ValueError(message: "Using variable `\(sym.name)` when is hasn't been initialized.")
         }
         
-        func varDeclaration(tp: Node, name: String, initial: Node?) throws -> NodeResult {
+        func varDeclaration(tp: Node, name: String, initial: Node?, constant: Bool) throws -> NodeResult {
             if let _ = currentScope[name, false] {
                 throw OdoException.NameError(message: "Variable called `\(name)` already exists.")
             }
@@ -516,7 +520,7 @@ extension Odo {
                 try consumeLazy(symbol: type)
             }
             
-            let newVar = VarSymbol(name: name, type: type)
+            let newVar = VarSymbol(name: name, type: type, isConstant: constant)
 
             if let initial = initial {
                 let newValue = try visit(node: initial)
@@ -556,7 +560,7 @@ extension Odo {
                 let tp: TypeSymbol
                 
                 switch par {
-                case .varDeclaration(let type, _, let initial):
+                case .varDeclaration(let type, _, let initial, _):
                     guard let varType = try getSymbol(from: type) as? TypeSymbol else {
                         throw OdoException.TypeError(message: "Type is invalid for parameter declaration")
                     }
@@ -648,7 +652,7 @@ extension Odo {
                 try visit(node: par)
                 let name: String
                 switch par {
-                case .varDeclaration(_, let varName, _):
+                case .varDeclaration(_, let varName, _, _):
                     name = varName
                 default:
                     name = ""
@@ -881,7 +885,8 @@ extension Odo {
                 let _ = try varDeclaration(
                     tp: .variable("int"),
                     name: usingId,
-                    initial: nil
+                    initial: nil,
+                    constant: true
                 )
 
                 currentScope[usingId, false]!.isInitialized = true
@@ -911,6 +916,13 @@ extension Odo {
                         }
                         
                         try self.popLazyScope()
+                        
+                        try moduleContext.forEach { name, sym in
+                            if !sym.isInitialized {
+                                throw OdoException.SemanticError(message: "Symbol `\(name)` in module was not initialized")
+                            }
+                        }
+                        
                         self.currentScope = temp
                     }
                 )

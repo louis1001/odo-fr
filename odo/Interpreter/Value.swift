@@ -236,42 +236,46 @@ extension Odo {
             super.init(scope: SymbolTable(name, parent: inter.globalTable))
         }
         
-        public func add(_ name: String, value: Int) {
+        public func add(_ name: String, value: Int, constant: Bool = true) {
             scope.addSymbol(
                 VarSymbol(
                     name: name,
                     type: .intType,
-                    value: IntValue(value: value)
+                    value: IntValue(value: value),
+                    isConstant: constant
                 )
             )
         }
         
-        public func add(_ name: String, value: Double) {
+        public func add(_ name: String, value: Double, constant: Bool = true) {
             scope.addSymbol(
                 VarSymbol(
                     name: name,
                     type: .doubleType,
-                    value: DoubleValue(value: value)
+                    value: DoubleValue(value: value),
+                    isConstant: constant
                 )
             )
         }
         
-        public func add(_ name: String, value: String) {
+        public func add(_ name: String, value: String, constant: Bool = true) {
             scope.addSymbol(
                 VarSymbol(
                     name: name,
                     type: .textType,
-                    value: TextValue(value: value)
+                    value: TextValue(value: value),
+                    isConstant: constant
                 )
             )
         }
         
-        public func add(_ name: String, value: Bool) {
+        public func add(_ name: String, value: Bool, constant: Bool = true) {
             scope.addSymbol(
                 VarSymbol(
                     name: name,
                     type: .boolType,
-                    value: BoolValue(value: value)
+                    value: BoolValue(value: value),
+                    isConstant: constant
                 )
             )
         }

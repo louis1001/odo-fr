@@ -38,6 +38,7 @@ extension Odo {
             case `true`
             case `false`
             case `var`
+            case const
             case `if`
             case `else`
             case loop

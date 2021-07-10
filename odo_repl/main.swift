@@ -22,6 +22,8 @@ func prepareStd(on interpreter: Odo.Interpreter) {
     let mathModule = interpreter.addModule("math")
     mathModule.add("e", value: M_E)
     mathModule.add("pi", value: .pi)
+    
+    mathModule.add("precision", value: 0.0001, constant: false)
 
     mathModule.addFunction("pow", takes: [.double, .doubleOr(2)], returns: .doubleType) { args, _ in
         let x = (args[0] as! Odo.PrimitiveValue).asDouble()!
@@ -61,13 +63,13 @@ func prepareStd(on interpreter: Odo.Interpreter) {
 
 // Multiline code snippet to run before repl
 let initialCode = """
-    var a = 3
-    var b = 5
-    io::writeln(a, " to the ", b, " is: ", math::pow(a, b))
+    const thousand = 1000
     
-    io::writeln("e to the ", b, " is: ", math::exp(b))
+    # What's this? no idea.
+    io::writeln("I can easily write ", 3*thousand, " characters in an essay")
     
-    
+    # This would fail:
+    # thousand = 1001
     """
 
 let inter = Odo.Interpreter()
