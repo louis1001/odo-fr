@@ -224,14 +224,6 @@ extension Odo {
         }
         
         func aritmeticOp(lhs: Node, op: Token, rhs: Node) throws -> Value {
-            var isDouble: Bool
-            switch (lhs, rhs) {
-            case (.int, .int):
-                isDouble = false
-            default:
-                isDouble = true
-            }
-
             let leftVisited = try visit(node: lhs)
             let rightVisited = try visit(node: rhs)
             
@@ -241,6 +233,8 @@ extension Odo {
             
             let lhs = leftVisited as! PrimitiveValue
             let rhs = rightVisited as! PrimitiveValue
+            
+            var isDouble = lhs.isDouble || rhs.isDouble
             
             let result: Double
             
