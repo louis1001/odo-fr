@@ -198,6 +198,9 @@ extension Odo {
             case .module(let name, let body):
                 return try module(name: name, body: body)
                 
+            case .enum(let name, let cases):
+                return try enumDeclaration(name: name, cases: cases)
+                
             case .functionType(_, _):
                 throw OdoException.SemanticError(message: "Invalid use of function type.")
                 
@@ -400,6 +403,10 @@ extension Odo {
                 return nativeFuncSymbol.body!
             case let scriptedFuncSymbol as ScriptedFunctionSymbol:
                 return scriptedFuncSymbol.value!
+            case let enumSymbol as EnumSymbol:
+                return enumSymbol.value!
+            case let enumCase as EnumCaseSymbol:
+                return enumCase.value!
             default:
                 break
             }
@@ -740,20 +747,28 @@ extension Odo {
         }
         
         func staticAccess(node: Node, name: String) throws -> Value {
-            let moduleSym = try currentScope.get(from: node) as! ModuleSymbol
-            let moduleValue = moduleSym.value!
-            
-            let sym = moduleValue.scope[name]!
-            switch sym {
-            case let variable as VarSymbol:
-                return variable.value!
-            case let scriptedFunction as ScriptedFunctionSymbol:
-                return scriptedFunction.value!
-            case let nativeFunction as NativeFunctionSymbol:
-                return nativeFunction.body!
-            case let module as ModuleSymbol:
-                return module.value!
-            default:
+            let symbol = try currentScope.get(from: node)
+            if let moduleSym = symbol as? ModuleSymbol {
+                let moduleValue = moduleSym.value!
+                
+                let sym = moduleValue.scope[name]!
+                switch sym {
+                case let variable as VarSymbol:
+                    return variable.value!
+                case let scriptedFunction as ScriptedFunctionSymbol:
+                    return scriptedFunction.value!
+                case let nativeFunction as NativeFunctionSymbol:
+                    return nativeFunction.body!
+                case let module as ModuleSymbol:
+                    return module.value!
+                default:
+                    return .null
+                }
+            } else if let enumSym = symbol as? EnumSymbol {
+                let enumValue = enumSym.value!
+
+                return (enumValue.scope[name] as! EnumCaseSymbol).value!
+            } else {
                 return .null
             }
         }
@@ -774,6 +789,25 @@ extension Odo {
             currentScope = temp
             
             currentScope.addSymbol(ModuleSymbol(name: name, value: moduleValue))
+            
+            return .null
+        }
+        
+        func enumDeclaration(name: String, cases: [String]) throws -> Value {
+            let enumSymbol = EnumSymbol(name: name)
+            let enumScope = SymbolTable("enum_\(name)_scope")
+            
+            let enumValue = EnumValue(scope: enumScope)
+            enumSymbol.value = enumValue
+            
+            for caseName in cases {
+                let caseValue = EnumCaseValue(name: caseName, type: enumSymbol)
+                let caseSymbol = EnumCaseSymbol(name: caseName, type: enumSymbol, value: caseValue)
+                
+                enumScope.addSymbol(caseSymbol)
+            }
+            
+            currentScope.addSymbol(enumSymbol)
             
             return .null
         }

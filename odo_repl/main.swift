@@ -22,8 +22,6 @@ func prepareStd(on interpreter: Odo.Interpreter) {
     let mathModule = interpreter.addModule("math")
     mathModule.add("e", value: M_E)
     mathModule.add("pi", value: .pi)
-    
-    mathModule.add("precision", value: 0.0001, constant: false)
 
     mathModule.addFunction("pow", takes: [.double, .doubleOr(2)], returns: .doubleType) { args, _ in
         let x = (args[0] as! Odo.PrimitiveValue).asDouble()!
@@ -63,13 +61,38 @@ func prepareStd(on interpreter: Odo.Interpreter) {
 
 // Multiline code snippet to run before repl
 let initialCode = """
-    const thousand = 1000
+    enum sign {
+        positive
+        zero
+        negative
+    }
     
-    # What's this? no idea.
-    io::writeln("I can easily write ", 3*thousand, " characters in an essay")
+    func get_sign(n: double): sign {
+        if n < 0 {
+            return sign::negative
+        } else if n > 0 {
+            return sign::positive
+        } else {
+            return sign::zero
+        }
+    }
     
-    # This would fail:
-    # thousand = 1001
+    const x = 10
+    const y = -10
+    const z = x + y
+    
+    func describe(n: int) {
+        const the_sign = get_sign(n)
+        if the_sign == sign::zero {
+            io::writeln(n, " is ", the_sign)
+        } else {
+            io::writeln(n, " is a ", get_sign(n), " number.")
+        }
+    }
+    
+    describe(x)
+    describe(z)
+    describe(y)
     """
 
 let inter = Odo.Interpreter()

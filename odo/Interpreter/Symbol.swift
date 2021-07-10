@@ -226,6 +226,22 @@ extension Odo {
         }
     }
     
+    class EnumSymbol: TypeSymbol {
+        var value: EnumValue?
+        init(name: String, value: EnumValue? = nil) {
+            self.value = value
+            super.init(name: name, type: nil)
+        }
+    }
+    
+    class EnumCaseSymbol: Symbol {
+        var value: EnumCaseValue?
+        init(name: String, type: EnumSymbol, value: EnumCaseValue? = nil) {
+            self.value = value
+            super.init(name: name, type: type, isConstant: true)
+        }
+    }
+    
     class VarSymbol: Symbol {
         var value: Value?
         
@@ -320,6 +336,9 @@ extension Odo {
                 case let asModule as ModuleSymbol:
                     let moduleContext = asModule.value
                     return moduleContext?.scope[name]
+                case let asEnum as EnumSymbol:
+                    let enumContext = asEnum.value
+                    return enumContext?.scope[name]
                 default:
                     // Innaccessible, based on semantic analysis
                     break

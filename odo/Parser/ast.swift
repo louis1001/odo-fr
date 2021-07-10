@@ -41,6 +41,7 @@ extension Odo {
         case returnStatement(Node?)
         
         case module(String, [Node])
+        case `enum`(String, [String])
         
         case staticAccess(Node, String)
         

@@ -136,6 +136,25 @@ extension Odo {
                 let body = try statementList()
                 try eat(tp: .curlClose)
                 result = .module(name!, body)
+                
+            case .enum:
+                try eat(tp: .enum)
+                ignoreNl()
+                let name = currentToken.lexeme
+                try eat(tp: .identifier)
+                ignoreNl()
+                var body: [String] = []
+                try eat(tp: .curlOpen)
+                ignoreNl()
+                while currentToken.type != .curlClose {
+                    let name = currentToken.lexeme
+                    try eat(tp: .identifier)
+                    body.append(name!)
+                    try statementTerminator()
+                    ignoreNl()
+                }
+                try eat(tp: .curlClose)
+                result = .enum(name!, body)
             default:
                 result = try ternaryOp()
             }

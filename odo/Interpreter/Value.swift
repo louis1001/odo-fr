@@ -227,6 +227,30 @@ extension Odo {
         }
     }
     
+    public class EnumValue: Value {
+        let scope: SymbolTable
+        
+        public override var className: String { "enum" }
+        
+        init(scope: SymbolTable) {
+            self.scope = scope
+            super.init()
+        }
+    }
+    
+    public class EnumCaseValue: Value {
+        let name: String
+        init(name: String, type enumType: EnumSymbol) {
+            self.name = name
+            super.init()
+            type = enumType
+        }
+        
+        public override var description: String {
+            "\(name)"
+        }
+    }
+    
     public class NativeModule: ModuleValue {
         
         var analyzer: SemanticAnalyzer

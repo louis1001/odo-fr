@@ -30,7 +30,8 @@ extension Odo {
             "break": Token(type: .break),
             "continue": Token(type: .continue),
             
-            "module": Token(type: .module)
+            "module": Token(type: .module),
+            "enum": Token(type: .enum)
         ]
         
         private var code: String = ""

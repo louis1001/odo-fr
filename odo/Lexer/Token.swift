@@ -52,6 +52,7 @@ extension Odo {
             case `return`
             
             case module
+            case `enum`
             
             // Punctuation
             case colon

@@ -239,6 +239,9 @@ extension Odo {
             case .module(let name, let body):
                 return try module(name: name, body: body)
                 
+            case .enum(let name, let cases):
+                return try enumDeclaration(name: name, cases: cases)
+                
             case .functionType(_, _):
                 throw OdoException.SemanticError(message: "Invalid use of function type.")
             
@@ -292,6 +295,9 @@ extension Odo {
                 case let asModule as ModuleSymbol:
                     let moduleContext = semanticContexts[asModule]
                     result = moduleContext![name, false]
+                case let asEnum as EnumSymbol:
+                    let enumContext = semanticContexts[asEnum]
+                    result = enumContext?[name]
                 default:
                     throw OdoException.NameError(message: "Cannot acces static symbol in this node")
                 }
@@ -927,6 +933,25 @@ extension Odo {
                     }
                 )
             }
+            return .nothing
+        }
+        
+        func enumDeclaration(name: String, cases: [String]) throws -> NodeResult {
+            guard currentScope[name, false] == nil else {
+                throw OdoException.NameError(message: "Symbol called `\(name)` already exists in this scope.")
+            }
+            
+            let enumType = EnumSymbol(name: name)
+            let enumScope = SymbolTable("enum_\(name)_scope")
+
+            for caseName in cases {
+                enumScope.addSymbol(EnumCaseSymbol(name: caseName, type: enumType))
+            }
+            
+            addSemanticContext(for: enumType, scope: enumScope)
+            
+            currentScope.addSymbol(enumType)
+            
             return .nothing
         }
         
