@@ -628,7 +628,7 @@ extension Odo {
                 functionType = inScope as! ScriptedFunctionTypeSymbol
                 
                 if let existingContext = semanticContexts[functionType] {
-                    funcScope = existingContext
+                    funcScope = existingContext.copy()
                 } else {
                     funcScope = addFunctionSemanticContext(for: functionType, name: typeName, params: paramTypes).copy()
                 }
