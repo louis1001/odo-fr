@@ -7,6 +7,7 @@
 
 import Foundation
 import odolib
+import LineNoise
 
 // MARK: - STDLib definition
 
@@ -61,19 +62,21 @@ func prepareStd(on interpreter: Odo.Interpreter) {
 
 // Multiline code snippet to run before repl
 let initialCode = """
-    enum sign {
-        positive
-        zero
-        negative
-    }
-    
-    func get_sign(n: double): sign {
-        if n < 0 {
-            return sign::negative
-        } else if n > 0 {
-            return sign::positive
-        } else {
-            return sign::zero
+    #{module math_concepts {
+        enum sign {
+            positive
+            zero
+            negative
+        }
+
+        func get_sign(n: double): sign {
+            if n < 0 {
+                return sign::negative
+            } else if n > 0 {
+                return sign::positive
+            } else {
+                return sign::zero
+            }
         }
     }
     
@@ -82,17 +85,17 @@ let initialCode = """
     const z = x + y
     
     func describe(n: int) {
-        const the_sign = get_sign(n)
-        if the_sign == sign::zero {
+        const the_sign = math_concepts::get_sign(n)
+        if the_sign == math_concepts::sign::zero {
             io::writeln(n, " is ", the_sign)
         } else {
-            io::writeln(n, " is a ", get_sign(n), " number.")
+            io::writeln(n, " is a ", math_concepts::get_sign(n), " number.")
         }
     }
     
     describe(x)
     describe(z)
-    describe(y)
+    describe(y)}#
     """
 
 let inter = Odo.Interpreter()
@@ -114,11 +117,18 @@ inter.addVoidFunction("exit", takes: [.intOr(0)]) { args, _ in
     running = false
 }
 
+let historyFile = "/tmp/odo_history.txt"
+let ln = LineNoise()
+try? ln.loadHistory(fromFile: historyFile)
+
 while running {
-    print("> ", terminator: "")
-    guard let val = readLine() else {
+//    print("> ", terminator: "")
+    guard let val = try? ln.getLine(prompt: "> ") else {
         break
     }
+    
+    print("")
+    ln.addHistory(val)
     
     do {
         let result = try inter.repl(code: val)
@@ -130,6 +140,8 @@ while running {
     }
 
 }
+
+try? ln.saveHistory(toFile: "/tmp/history.txt")
 
 if let code = exitCode {
     exit(code)

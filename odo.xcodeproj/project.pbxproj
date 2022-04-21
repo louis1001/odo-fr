@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -21,6 +21,7 @@
 		C45FB03126892F45006F42AC /* CallStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = C45FB03026892F45006F42AC /* CallStack.swift */; };
 		C48CCF872664199D00C8D068 /* NodeResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = C48CCF862664199D00C8D068 /* NodeResult.swift */; };
 		C48CCF8A266419C800C8D068 /* Symbol.swift in Sources */ = {isa = PBXBuildFile; fileRef = C48CCF89266419C800C8D068 /* Symbol.swift */; };
+		C496A83B2810CDA200DB5EA3 /* LineNoise in Frameworks */ = {isa = PBXBuildFile; productRef = C496A83A2810CDA200DB5EA3 /* LineNoise */; };
 		C4A9E7D02662A1B1001C5C5D /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4A9E7CF2662A1B1001C5C5D /* main.swift */; };
 /* End PBXBuildFile section */
 
@@ -90,6 +91,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C434E8BD2662AC1C000999F7 /* odolib.framework in Frameworks */,
+				C496A83B2810CDA200DB5EA3 /* LineNoise in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -245,6 +247,9 @@
 				C434E8C02662AC1C000999F7 /* PBXTargetDependency */,
 			);
 			name = odo_repl;
+			packageProductDependencies = (
+				C496A83A2810CDA200DB5EA3 /* LineNoise */,
+			);
 			productName = odo_repl;
 			productReference = C4A9E7CD2662A1B1001C5C5D /* odo_repl */;
 			productType = "com.apple.product-type.tool";
@@ -275,6 +280,9 @@
 				Base,
 			);
 			mainGroup = C4D388BE2662940B00F8B554;
+			packageReferences = (
+				C496A8392810CDA200DB5EA3 /* XCRemoteSwiftPackageReference "linenoise-swift" */,
+			);
 			productRefGroup = C4D388C82662940B00F8B554 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -337,7 +345,7 @@
 		C434E8B62662AA81000999F7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				BUILD_LIBRARY_FOR_DISTRIBUTION = NO;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -353,7 +361,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MACH_O_TYPE = mh_dylib;
+				MACH_O_TYPE = staticlib;
 				MACOSX_DEPLOYMENT_TARGET = 11.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "dev.louis1001.odo-mac";
 				PRODUCT_NAME = odolib;
@@ -370,7 +378,7 @@
 		C434E8B72662AA81000999F7 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				BUILD_LIBRARY_FOR_DISTRIBUTION = NO;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -386,7 +394,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MACH_O_TYPE = mh_dylib;
+				MACH_O_TYPE = staticlib;
 				MACOSX_DEPLOYMENT_TARGET = 11.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "dev.louis1001.odo-mac";
 				PRODUCT_NAME = odolib;
@@ -410,6 +418,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/**";
 				MACOSX_DEPLOYMENT_TARGET = 11.1;
+				PRODUCT_BUNDLE_IDENTIFIER = louis1001.odo;
 				PRODUCT_NAME = odo_repl;
 				SDKROOT = macosx;
 				SUPPORTED_PLATFORMS = macosx;
@@ -427,6 +436,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/**";
 				MACOSX_DEPLOYMENT_TARGET = 11.1;
+				PRODUCT_BUNDLE_IDENTIFIER = louis1001.odo;
 				PRODUCT_NAME = odo_repl;
 				SDKROOT = macosx;
 				SUPPORTED_PLATFORMS = macosx;
@@ -583,6 +593,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		C496A8392810CDA200DB5EA3 /* XCRemoteSwiftPackageReference "linenoise-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/andybest/linenoise-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.0.3;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C496A83A2810CDA200DB5EA3 /* LineNoise */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C496A8392810CDA200DB5EA3 /* XCRemoteSwiftPackageReference "linenoise-swift" */;
+			productName = LineNoise;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = C4D388BF2662940B00F8B554 /* Project object */;
 }
