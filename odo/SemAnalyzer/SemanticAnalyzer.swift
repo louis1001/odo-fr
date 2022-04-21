@@ -139,6 +139,8 @@ extension Odo {
                 self?.semanticContexts.remove(sym)
             }
             
+            scope.owner = sym
+            
             return scope
         }
         
@@ -457,13 +459,13 @@ extension Odo {
             if let sym = try getSymbol(from: lhs) {
                 guard let _ = sym.type, !sym.isType else {
                     // Error! Invalid assignment
-                    throw OdoException.SemanticError(message: "Invalid assignment to symbol `\(sym.name)`.")
+                    throw OdoException.SemanticError(message: "Invalid assignment to symbol `\(sym.qualifiedName)`.")
                 }
                 
                 let newValue = try visit(node: val)
                 
                 guard let newType = newValue.tp else {
-                    throw OdoException.SemanticError(message: "Invalid assignment to symbol `\(sym.name)`. Operation doesn't provide a value.")
+                    throw OdoException.SemanticError(message: "Invalid assignment to symbol `\(sym.qualifiedName)`. Operation doesn't provide a value.")
                 }
                 
                 if !sym.isInitialized {
@@ -474,13 +476,13 @@ extension Odo {
                     sym.isInitialized = true
                 } else {
                     if sym.isConstant {
-                        throw OdoException.SemanticError(message: "Invalid assignment to constant `\(sym.name)`.")
+                        throw OdoException.SemanticError(message: "Invalid assignment to constant `\(sym.qualifiedName)`.")
                     }
                 }
                 
                 if !counts(type: newType, as: sym.type!) {
                     throw OdoException.TypeError(
-                        message: "Invalid assignment, variable `\(sym.name)` expected value of type `\(sym.type!.name)` but recieved `\(newValue.tp?.name ?? "no value")`")
+                        message: "Invalid assignment, variable `\(sym.qualifiedName)` expected value of type `\(sym.type!.qualifiedName)` but recieved `\(newValue.tp?.qualifiedName ?? "no value")`")
                 }
                 
                 // TODO: Set constantness and side effects for symbol
@@ -506,7 +508,7 @@ extension Odo {
                 return NodeResult(tp: sym.type)
             }
             
-            throw OdoException.ValueError(message: "Using variable `\(sym.name)` when is hasn't been initialized.")
+            throw OdoException.ValueError(message: "Using variable `\(sym.qualifiedName)` when is hasn't been initialized.")
         }
         
         func varDeclaration(tp: Node, name: String, initial: Node?, constant: Bool) throws -> NodeResult {
@@ -519,7 +521,7 @@ extension Odo {
             }
             
             guard let type = type as? TypeSymbol else {
-                throw OdoException.TypeError(message: "Symbol `\(type.name)` is not a valid type.")
+                throw OdoException.TypeError(message: "Symbol `\(type.qualifiedName)` is not a valid type.")
             }
             
             if !type.hasBeenChecked {
@@ -532,7 +534,7 @@ extension Odo {
                 let newValue = try visit(node: initial)
                 
                 guard let newType = newValue.tp else {
-                    throw OdoException.ValueError(message: "Initial expression for declaration of `\(newVar.name)` does not provide a value.")
+                    throw OdoException.ValueError(message: "Initial expression for declaration of `\(newVar.qualifiedName)` does not provide a value.")
                 }
                 
                 if !newType.hasBeenChecked {
@@ -540,7 +542,7 @@ extension Odo {
                 }
                 
                 guard counts(type: newType, as: type) else {
-                    throw OdoException.TypeError(message: "Invalid declaration, variable `\(newVar.name)` expected value of type `\(type.name)` but recieved `\(newType.name)`")
+                    throw OdoException.TypeError(message: "Invalid declaration, variable `\(newVar.qualifiedName)` expected value of type `\(type.qualifiedName)` but recieved `\(newType.qualifiedName)`")
                 }
                 
                 if type == .anyType {
@@ -697,14 +699,14 @@ extension Odo {
             let function = try getSymbol(from: expr)
             
             guard let _ = function?.type as? FunctionTypeSymbol else {
-                throw OdoException.TypeError(message: "Invalid function call. Value of type `\(function?.name ?? "")` is not a function.")
+                throw OdoException.TypeError(message: "Invalid function call. Value of type `\(function?.qualifiedName ?? "")` is not a function.")
             }
 
             if let functionType = function?.type as? ScriptedFunctionTypeSymbol {
                 let parametersInTemplate = functionContexts[functionType]!
                 
                 if args.count > parametersInTemplate.count {
-                    throw OdoException.SemanticError(message: "Function `\(function?.name ?? "")` takes a maximum of \(parametersInTemplate.count) arguments, but was called with \(args.count).")
+                    throw OdoException.SemanticError(message: "Function `\(function?.qualifiedName ?? "")` takes a maximum of \(parametersInTemplate.count) arguments, but was called with \(args.count).")
                 }
                 
                 for (i, paramDef) in parametersInTemplate.enumerated() {
@@ -720,7 +722,7 @@ extension Odo {
                         }
                         
                         if !counts(type: argType, as: param) {
-                            throw OdoException.TypeError(message: "Invalid type for argument \(i) of function. Expected type `\(param.name)` but received `\(argType.name)`.")
+                            throw OdoException.TypeError(message: "Invalid type for argument \(i) of function. Expected type `\(param.qualifiedName)` but received `\(argType.qualifiedName)`.")
                         }
                     } else if !isOptional {
                         throw OdoException.ValueError(message: "No value for function call argument \(i)")
@@ -732,7 +734,7 @@ extension Odo {
                 case .nothing:
                     guard args.isEmpty else {
                         throw OdoException.ValueError(
-                            message: "Function `\(native.name)` takes no arguments."
+                            message: "Function `\(native.qualifiedName)` takes no arguments."
                         )
                     }
                 case .whatever:
@@ -740,13 +742,13 @@ extension Odo {
                 case .some(let x):
                     guard args.count == x else {
                         throw OdoException.ValueError(
-                            message: "Function `\(native.name)` takes `\(x)` arguments."
+                            message: "Function `\(native.qualifiedName)` takes `\(x)` arguments."
                         )
                     }
                 case .someOrLess(let x):
                     guard args.count <= x else {
                         throw OdoException.ValueError(
-                            message: "Function `\(native.name)` takes `\(x)` arguments or less."
+                            message: "Function `\(native.qualifiedName)` takes `\(x)` arguments or less."
                         )
                     }
                 }
@@ -775,14 +777,14 @@ extension Odo {
                 if let returningType = value.tp {
                     if !counts(type: returningType, as: expected) {
                         throw OdoException.TypeError(
-                            message: "Returning value with invalid type. Expected `\(currentFunctionDetails.expectedReturnType?.name ?? "")` but recieved `\(returningType.name)`"
+                            message: "Returning value with invalid type. Expected `\(currentFunctionDetails.expectedReturnType?.qualifiedName ?? "")` but recieved `\(returningType.qualifiedName)`"
                         )
                     }
                 } else {
                     throw OdoException.ValueError(message: "Expression in return statement doesn't provide a value")
                 }
             } else if let expected = currentFunctionDetails.expectedReturnType {
-                throw OdoException.ValueError(message: "Expected value of type `\(expected.name)` in return.")
+                throw OdoException.ValueError(message: "Expected value of type `\(expected.qualifiedName)` in return.")
             }
             
             let lastIndx = functionDetailsStack.count-1
@@ -907,7 +909,7 @@ extension Odo {
         
         func module(name: String, body: [Node]) throws -> NodeResult {
             if let moduleInTable = currentScope.addSymbol(ModuleSymbol(name: name)) {
-                let moduleContext = addSemanticContext(for: moduleInTable, called: "module_\(moduleInTable.name)_scope")
+                let moduleContext = addSemanticContext(for: moduleInTable, called: "module_\(moduleInTable.qualifiedName)_scope")
                 moduleInTable.isInitialized = true
                 
                 addLazyCheck(
@@ -959,7 +961,7 @@ extension Odo {
             let argument = try visit(node: arg)
 
             guard let argType = argument.tp, counts(type: argType, as: type) else {
-                throw OdoException.TypeError(message: "Function takes an argument of type `\(type.name)`.")
+                throw OdoException.TypeError(message: "Function takes an argument of type `\(type.qualifiedName)`.")
             }
         }
         

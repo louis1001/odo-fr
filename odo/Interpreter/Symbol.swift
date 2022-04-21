@@ -19,8 +19,13 @@ extension Odo {
         }
         
         var type: TypeSymbol?
+        var scope: SymbolTable?
         
         public let name: String
+        var qualifiedName: String {
+            (scope?.qualifiedScopeName ?? "")
+            + name
+        }
         
         var isType: Bool { false }
         
@@ -267,6 +272,20 @@ extension Odo {
         let name: String
         var parent: SymbolTable?
         
+        var owner: Symbol?
+        var qualifiedScopeName: String {
+            var result = ""
+            if let owner = owner {
+                result = "::" + owner.name
+            }
+            
+            if let parent = parent {
+                result = parent.qualifiedScopeName
+            }
+
+            return result
+        }
+        
         private var topScope: SymbolTable {
             parent?.topScope ?? self
         }
@@ -358,6 +377,8 @@ extension Odo {
             }
             
             symbols[sym.name] = sym
+            
+            sym.scope = self
             
             return sym
         }
