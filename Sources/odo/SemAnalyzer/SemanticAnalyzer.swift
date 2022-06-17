@@ -31,6 +31,11 @@ extension Odo {
     }
     
     struct FunctionDetails {
+        init(expectedReturnType: Odo.TypeSymbol? = nil, returningAValue: Bool = false) {
+            self.expectedReturnType = expectedReturnType
+            self.returningAValue = returningAValue
+        }
+        
         var expectedReturnType: TypeSymbol?
         var returningAValue: Bool = false
         
@@ -232,7 +237,15 @@ extension Odo {
                 // Can break?
                 return .nothing
                 
-            case .staticAccess:
+            case .staticAccess(let n, let item):
+                var scope: SymbolTable? = currentScope
+                while scope != nil {
+                    print("--")
+                    scope?.forEach { (s, _) in
+                        print("--- \(s)")
+                    }
+                    scope = scope?.parent
+                }
                 if let sym = try getSymbol(from: node) {
                     return NodeResult(tp: sym.type)
                 }
@@ -971,6 +984,7 @@ extension Odo {
             
             if left.isNumeric && right.isNumeric { return true }
             
+            print("Comparing: \(left.qualifiedName) to \(right.qualifiedName)")
             if left == right { return true }
             
             var curr: TypeSymbol = left

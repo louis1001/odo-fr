@@ -7,25 +7,31 @@
 
 import Foundation
 
+private class WeakPtr<T: AnyObject> {
+    weak var value: T?
+    
+    var isNil: Bool { value == nil }
+    
+    init(_ value: T) {
+        self.value = value
+    }
+}
+
 extension Odo {
-    public class Symbol: Equatable, Hashable {
-        let id = UUID()
+    public class Symbol: Hashable {
         public static func == (lhs: Odo.Symbol, rhs: Odo.Symbol) -> Bool {
-            return lhs.id == rhs.id
+            return lhs.qualifiedName == rhs.qualifiedName
         }
         
         public func hash(into hasher: inout Hasher) {
-            hasher.combine(id)
+            hasher.combine(qualifiedName)
         }
         
         var type: TypeSymbol?
-        var scope: SymbolTable?
+        private(set) weak var scope: SymbolTable?
         
         public let name: String
-        var qualifiedName: String {
-            (scope?.qualifiedScopeName ?? "")
-            + name
-        }
+        var qualifiedName: String
         
         var isType: Bool { false }
         
@@ -41,12 +47,14 @@ extension Odo {
             self.name = name
             self.type = type
             self.isConstant = isConstant
+            qualifiedName = name
         }
         
         fileprivate init(name: String, isConstant: Bool = false) {
             self.type = nil
             self.name = name
             self.isConstant = isConstant
+            self.qualifiedName = name
         }
         
         deinit {
@@ -55,6 +63,13 @@ extension Odo {
         
         func toString() -> String {
             return "Type(\(name))"
+        }
+        
+        func setScope(_ scope: SymbolTable?) {
+            self.scope = scope
+            var qualification = scope?.qualifications ?? []
+            qualification.append(name)
+            qualifiedName = qualification.joined(separator: "::")
         }
         
         // Builtin types
@@ -269,25 +284,45 @@ extension Odo {
         
         private var unwindingFor: UnwindType?
         
-        let name: String
-        var parent: SymbolTable?
+        private var children: [WeakPtr<SymbolTable>] = []
         
-        var owner: Symbol?
-        var qualifiedScopeName: String {
-            var result = ""
-            if let owner = owner {
-                result = "::" + owner.name
+        let name: String
+        var parent: SymbolTable? {
+            willSet {
+                parent?.children.removeAll { $0.value === self || $0.isNil }
+                newValue?.children.append(WeakPtr(self))
+            }
+        }
+        
+        var qualifications: [String] {
+            var qu = self.parent?.qualifications ?? []
+            if let owner = self.owner {
+                qu.append(owner.name)
             }
             
-            if let parent = parent {
-                result = parent.qualifiedScopeName
-            }
-
-            return result
+            return qu
         }
+        
+        weak var owner: Symbol? {
+            didSet {
+                updateScope()
+            }
+        }
+        private(set) var qualifiedScopeName: String = ""
         
         private var topScope: SymbolTable {
             parent?.topScope ?? self
+        }
+        
+        func updateScope() {
+            self.makeQualifiedScopeName()
+            self.forEach {_, sym in
+                sym.setScope(self)
+            }
+            
+            for scope in self.children {
+                scope.value?.updateScope()
+            }
         }
         
         private var symbols: Dictionary<String, Symbol> = [:]
@@ -301,6 +336,12 @@ extension Odo {
         init(_ name: String, parent: SymbolTable? = nil) {
             self.name = name
             self.parent = parent
+            
+            self.makeQualifiedScopeName()
+        }
+        
+        private func makeQualifiedScopeName() {
+            self.qualifiedScopeName = qualifications.joined(separator: "::")
         }
         
         subscript(name: String, inParents: Bool = true) -> Symbol? {
@@ -378,7 +419,7 @@ extension Odo {
             
             symbols[sym.name] = sym
             
-            sym.scope = self
+            sym.setScope(self)
             
             return sym
         }

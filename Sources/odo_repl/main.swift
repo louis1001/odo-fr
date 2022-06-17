@@ -96,6 +96,20 @@ let initialCode = """
     describe(x)
     describe(z)
     describe(y)}#
+    module a {
+        enum b {
+            c
+        }
+    
+        func get() {
+            io::writeln(b::c)
+        }
+    }
+    
+    a::get()
+    
+    #a::b::c
+    
     """
 
 let inter = Odo.Interpreter()

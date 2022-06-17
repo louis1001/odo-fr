@@ -8,7 +8,7 @@ let package = Package(
     ],
     targets: [
         .target(name: "odolib", dependencies: [], path: "Sources/odo/"),
-        .target(name: "odo_repl", dependencies: [
+        .executableTarget(name: "odo_repl", dependencies: [
             .product(name: "LineNoise", package: "linenoise-swift"),
             "odolib"
         ])
