@@ -96,7 +96,8 @@ let initialCode = """
     describe(x)
     describe(z)
     describe(y)}#
-    module a {
+    
+    #{module a {
         enum b {
             c
         }
@@ -106,23 +107,34 @@ let initialCode = """
         }
     }
     
-    a::get()
+    a::get()}#
     
-    #a::b::c
-    
+    var something: truth = false
+    something = false
+    var something2: double = 2.0
     """
 
 //let inter = Odo.Interpreter()
-var running = true
+var running = false
 var exitCode: Int32?
 
 //prepareStd(on: inter)
 
-//do {
+do {
 //    let _ = try inter.repl(code: initialCode)
-//} catch let err as Odo.OdoException {
-//    print(err.description())
-//}
+    let parser = Odo.Parser()
+    try parser.setText(to: initialCode)
+    
+    let ast = try parser.program()
+    
+    let analyzer = Odo.SemanticAnalyzer()
+    
+    try analyzer.visit(node: ast)
+    
+    print(ast)
+} catch let err as Odo.OdoException {
+    print(err.description())
+}
 
 //inter.addVoidFunction("exit", takes: [.intOr(0)]) { args, _ in
 //    let arg = (args.first as! Odo.IntValue).asInt()
@@ -136,7 +148,6 @@ let ln = LineNoise()
 try? ln.loadHistory(fromFile: historyFile)
 
 while running {
-//    print("> ", terminator: "")
     guard let val = try? ln.getLine(prompt: "> ") else {
         break
     }
@@ -146,8 +157,15 @@ while running {
     
     do {
 //        let result = try inter.repl(code: val)
+        let parser = Odo.Parser()
+        try parser.setText(to: val)
+        
+        let ast = try parser.program()
+        
+        print(ast)
+        
 //        if result !== Odo.Value.null {
-//            print(result)
+        
 //        }
     } catch let err as Odo.OdoException {
         print(err.description())

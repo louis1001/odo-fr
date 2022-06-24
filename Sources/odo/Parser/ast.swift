@@ -31,7 +31,7 @@ extension Odo {
         case unaryOp(Token, Node)
         
         case variable(String)
-        case varDeclaration(Node, String, Node?, Bool=false)
+        case varDeclaration(Node?, String, Node?, Bool=false)
         case assignment(Node, Node)
         
         case functionDeclaration(String, [Node], Node?, Node)

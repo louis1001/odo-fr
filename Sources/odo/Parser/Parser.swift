@@ -22,7 +22,7 @@ extension Odo {
             }
         }
 
-        func program() throws -> Node {
+        public func program() throws -> Node {
             let result = try block()
             
             if currentToken.type != .eof {
@@ -385,7 +385,7 @@ extension Odo {
             let name = currentToken.lexeme
             try eat(tp: .identifier)
             
-            let type: Node
+            var type: Node? = nil
             
             let withType = currentToken.type == .colon
             
@@ -393,9 +393,6 @@ extension Odo {
                 try eat(tp: .colon)
                 
                 type = try getFullType()
-            } else {
-                // TODO: Make this nil, and clear any to be actually generic
-                type = .variable("any")
             }
             
             let assignment: Node?
@@ -414,15 +411,12 @@ extension Odo {
             let name = currentToken.lexeme
             try eat(tp: .identifier)
             
-            let type: Node
+            var type: Node? = nil
             
             if forceType || currentToken.type == .colon {
                 try eat(tp: .colon)
                 
                 type = try getFullType()
-            } else {
-                // TODO: Make this nil, and clear any to be actually generic
-                type = .variable("any")
             }
             
             let assignment: Node?
@@ -630,7 +624,7 @@ extension Odo {
             throw OdoException.SyntaxError(message: "Unexpected token `\(currentToken)`")
         }
         
-        func setText(to text: String) throws {
+        public func setText(to text: String) throws {
             lexer.setText(to: text)
             currentToken = try lexer.getNextToken()
         }
