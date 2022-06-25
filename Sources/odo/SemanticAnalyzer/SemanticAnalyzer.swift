@@ -177,11 +177,15 @@ public class SemanticAnalyzer {
         var initialChecked: CheckedAst? = nil
         if let initial = initial {
             let (result, val) = try visit(node: initial)
+
+            guard let initialType = result.typeId else {
+                throw OdoException.ValueError(message: "Invalid initialization. Needs to return a value")
+            }
             initialChecked = val
             
                 // Counts as?
             if let typeSymbol = typeSymbol {
-                if result.typeId != typeSymbol.id {
+                guard typeCounts(initialType, as: typeSymbol.id) else {
                     throw OdoException.TypeError(message: "Invalid initialization for var of type `\(typeSymbol.name)`")
                 }
             } else {
@@ -215,7 +219,7 @@ public class SemanticAnalyzer {
             throw OdoException.ValueError(message: "Invalid assignment. Doesn't provide a new value.")
         }
         
-        guard typeId == valueTypeId else {
+        guard typeCounts(valueTypeId, as: typeId) else {
             throw OdoException.TypeError(message: "Invalid type for assignment")
         }
         
@@ -258,8 +262,6 @@ public class SemanticAnalyzer {
     }
 
     func typeCounts(_ firstType: Int, as base: Int) -> Bool {
-        if firstType == base { return true }
-
         var currentType: Int? = firstType
         while currentType != nil {
             if base == currentType {
