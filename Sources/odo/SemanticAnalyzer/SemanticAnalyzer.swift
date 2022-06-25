@@ -36,7 +36,17 @@ public class SemanticAnalyzer {
         
         return symbol
     }
-    
+
+    func createScope(called: String) -> Int {
+        let newScopeId = scopes.count
+        let scope = Scope(id: newScopeId)
+
+        scope.parentId = currentScopeId
+        scopes.append(scope)
+
+        return newScopeId
+    }
+
     @discardableResult
     public func visit(node: Node) throws -> (NodeResult, CheckedAst) {
         switch node {
@@ -118,6 +128,10 @@ public class SemanticAnalyzer {
     
     func checkBlock(_ nodes: [Node]) throws -> [CheckedAst]{
         var result: [CheckedAst] = []
+
+        let blockScope = createScope(called: "block_scope")
+        let prevScope = currentScopeId
+        currentScopeId = blockScope
         
         // Setup a scope
         for node in nodes {
@@ -126,6 +140,7 @@ public class SemanticAnalyzer {
         }
         
         // TODO: Maybe block can return something by default
+        currentScopeId = prevScope
         
         return result
     }
@@ -226,6 +241,20 @@ public class SemanticAnalyzer {
         let (_, checkedType) = try visit(node: target)
         
         return .assignment(checkedType, valueChecked)
+    }
+
+    func getSymbolFromId(_ id: Int, inScope scopeId: Int, andParents: Bool = true) -> Symbol? {
+        let scope = scopes[scopeId]
+
+        if scope.symbols.contains(where: { $0 == id }) {
+            return symbols[id]
+        }
+
+        if andParents, let parentScope = scope.parentId {
+            return getSymbolFromId(id, inScope: parentScope)
+        }
+
+        return nil
     }
     
     func getSymbol(from node: Node) throws -> Symbol? {
