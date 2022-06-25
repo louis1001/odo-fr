@@ -16,6 +16,8 @@ public indirect enum CheckedAst {
     
     case `break`
     case `continue`
+
+    case arithmeticOp(CheckedAst, Token, CheckedAst)
     
     case variable(String)
     case varDeclaration(Int, String, CheckedAst?, Bool)

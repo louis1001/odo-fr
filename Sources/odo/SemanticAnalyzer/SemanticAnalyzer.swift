@@ -63,8 +63,8 @@ public class SemanticAnalyzer {
         case .block(let array):
             let nodes = try checkBlock(array)
             return (NodeResult(), .block(nodes))
-//        case .arithmeticOp(let node, let token, let node):
-//            <#code#>
+        case .arithmeticOp(let lhs, let op, let rhs):
+            return try checkArithmeticOp(lhs: lhs, op: op, rhs: rhs)
 //        case .logicOp(let node, let token, let node):
 //            <#code#>
 //        case .equalityOp(let node, let token, let node):
@@ -128,6 +128,25 @@ public class SemanticAnalyzer {
         // TODO: Maybe block can return something by default
         
         return result
+    }
+
+    func checkArithmeticOp(lhs: Node, op: Token, rhs: Node) throws -> (NodeResult, CheckedAst) {
+        let (lhsResult, lhsChecked) = try visit(node: lhs)
+        let (rhsResult, rhsChecked) = try visit(node: rhs)
+
+        guard lhsResult.typeId != nil,  lhsResult.typeId == rhsResult.typeId else {
+            throw OdoException.TypeError(message: "Operands of arithmetic operation need to be of the same type")
+        }
+
+        switch op.type {
+            case .plus, .minus, .mul, .div:
+                break
+
+            default:
+                throw OdoException.SemanticError(message: "Invalid operator for arithmetic operation: \(op.description)")
+        }
+
+        return (NodeResult(lhsResult.typeId!), .arithmeticOp(lhsChecked, op, rhsChecked))
     }
 
     func checkVariable(name: String) throws -> (NodeResult, CheckedAst) {
