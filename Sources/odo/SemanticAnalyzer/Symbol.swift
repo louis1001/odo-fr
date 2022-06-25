@@ -23,6 +23,7 @@ class Symbol {
     var id: Int! = nil
     
     var isPrimitive: Bool { false }
+    var isConstant: Bool = false
     
     init(_ name: String, type: Int?) {
         self.name = name
@@ -37,6 +38,8 @@ class Symbol {
 class TypeSymbol: Symbol {
     override init(_ name: String, type: Int? = nil) {
         super.init(name, type: type)
+
+        self.isConstant = true
     }
 }
     

@@ -112,6 +112,9 @@ let initialCode = """
     var something: truth = false
     something = false
     var something2: double = 2.0 + 2.0
+
+    var a = 10
+    a = 10
     """
 
 //let inter = Odo.Interpreter()

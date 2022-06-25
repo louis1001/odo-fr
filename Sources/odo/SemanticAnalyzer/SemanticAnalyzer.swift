@@ -188,8 +188,10 @@ public class SemanticAnalyzer {
                 typeSymbol = symbols[result.typeId ?? 0] as? TypeSymbol
             }
         }
-        
-        addSymbol(VarSymbol(name, type: typeSymbol?.id ?? 0))
+
+        let newSymbol = VarSymbol(name, type: typeSymbol?.id ?? 0)
+        newSymbol.isConstant = isConstant
+        addSymbol(newSymbol)
         
         return .varDeclaration(typeSymbol?.id ?? 0, name, initialChecked, isConstant)
     }
@@ -197,6 +199,10 @@ public class SemanticAnalyzer {
     func checkAssignment(target: Node, value: Node) throws -> CheckedAst {
         guard let targetSymbol = try getSymbol(from: target) else {
             throw OdoException.NameError(message: "Invalid assignment to unknown symbol")
+        }
+
+        guard !targetSymbol.isConstant else {
+            throw OdoException.SemanticError(message: "Invalid reassignment to constant") // FIXME: Check for uninitialized constant first
         }
         
         guard let typeId = targetSymbol.type else {
