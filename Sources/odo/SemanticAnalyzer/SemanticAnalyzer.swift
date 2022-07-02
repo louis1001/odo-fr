@@ -104,10 +104,10 @@ public class SemanticAnalyzer {
 //            <#code#>
 //        case .module(let string, let array):
 //            <#code#>
-//        case .enum(let string, let array):
-//            <#code#>
-//        case .staticAccess(let node, let string):
-//            <#code#>
+        case .enum(let name, let cases):
+           return (NodeResult(), try checkEnum(name: name, cases: cases))
+       case .staticAccess(let source, let query):
+           return try checkStaticAccess(source: source, query: query)
 //        case .ifStatement(let node, let node, let optional):
 //            <#code#>
 //        case .loop(let node):
@@ -185,7 +185,7 @@ public class SemanticAnalyzer {
             typeSymbol = typeSym as? TypeSymbol
         }
         
-        if let _ = try getSymbol(called: name) {
+        if let _ = try getSymbol(called: name, nested: false) {
             throw OdoException.NameError(message: "Redeclaration of variable `\(name)`")
         }
 
@@ -243,6 +243,36 @@ public class SemanticAnalyzer {
         return .assignment(checkedType, valueChecked)
     }
 
+    func checkEnum(name: String, cases: [String]) throws -> CheckedAst {
+        if let _ = try getSymbol(called: name, nested: false) {
+            throw OdoException.NameError(message: "Redeclaration of variable `\(name)`")
+        }
+
+        let enumType = EnumTypeSymbol(name)
+        addSymbol(enumType)
+
+        let prevScopeId = currentScopeId
+        enumType.associatedScopeId = createScope(called: "enum_\(name)_scope")
+        currentScopeId = enumType.associatedScopeId!
+
+        for name in cases {
+            let caseSymbol = EnumSymbol(name, type: enumType.id)
+            addSymbol(caseSymbol)
+        }
+
+        currentScopeId = prevScopeId
+
+        return .noOp // TODO: Maybe enums can contain more than the case definitions
+    }
+
+    func checkStaticAccess(source: Node, query: String) throws -> (NodeResult, CheckedAst) {
+        guard let symbol = try getSymbol(from: .staticAccess(source, query)) else {
+            throw OdoException.NameError(message: "Unknown symbol `\(query)` in static access")
+        }
+
+        return (NodeResult(symbol.type ?? 0), .symbolAccess(symbol.id))
+    }
+
     func getSymbolFromId(_ id: Int, inScope scopeId: Int, andParents: Bool = true) -> Symbol? {
         let scope = scopes[scopeId]
 
@@ -263,6 +293,23 @@ public class SemanticAnalyzer {
             let sym = try getSymbol(called: name)
             
             return sym
+        case .staticAccess(let source, let name):
+            guard let sym = try getSymbol(from: source) else {
+                return nil
+            }
+
+            switch sym {
+                case let enumType where enumType is EnumTypeSymbol:
+                    guard let scopeId = enumType.associatedScopeId else {
+                        fatalError("Unreachable")
+                    }
+                    let scope = scopes[scopeId]
+
+                    return getSymbol(called: name, inScope: scope, nested: false)
+                // ...
+                default:
+                    throw OdoException.SemanticError(message: "Invalid static access")
+            }
         default:
             throw OdoException.SemanticError(message: "Cannot get symbol from node")
         }

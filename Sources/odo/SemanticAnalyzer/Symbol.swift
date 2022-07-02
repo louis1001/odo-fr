@@ -24,6 +24,8 @@ class Symbol {
     
     var isPrimitive: Bool { false }
     var isConstant: Bool = false
+
+    var associatedScopeId: Int? = nil
     
     init(_ name: String, type: Int?) {
         self.name = name
@@ -49,6 +51,14 @@ class PrimitiveTypeSymbol: TypeSymbol {
 
 class VarSymbol: Symbol {
     
+}
+
+class EnumTypeSymbol: TypeSymbol {
+
+}
+
+class EnumSymbol: Symbol {
+
 }
 
 }

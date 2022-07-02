@@ -134,9 +134,9 @@ do {
     
     let analyzer = Odo.SemanticAnalyzer()
     
-    try analyzer.visit(node: ast)
+    let result = try analyzer.visit(node: ast)
     
-    print(ast)
+    print(result)
 } catch let err as Odo.OdoException {
     print(err.description())
 }

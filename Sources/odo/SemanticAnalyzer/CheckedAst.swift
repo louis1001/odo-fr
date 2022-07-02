@@ -25,6 +25,8 @@ public indirect enum CheckedAst {
     
     case block([CheckedAst])
     
+    case symbolAccess(Int)
+    
     case noOp
 }
 }
