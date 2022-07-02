@@ -12,10 +12,14 @@ public class SemanticAnalyzer {
     var symbols: [Symbol]
     var currentScopeId: Int
     var scopes: [Scope]
+
+    var functionTypes: [Int] = []
+
+    var globalScope: Scope
     
     public init() {
         symbols = []
-        let globalScope = Scope(id: 0)
+        globalScope = Scope(id: 0)
         scopes = [globalScope]
         currentScopeId = globalScope.id
         
@@ -94,8 +98,8 @@ public class SemanticAnalyzer {
             )
         case .assignment(let target, let value):
             return (NodeResult(), try checkAssignment(target: target, value: value))
-//        case .functionDeclaration(let string, let array, let optional, let node):
-//            <#code#>
+        case .functionDeclaration(let name, let arguments, let returnType, let body):
+            return (NodeResult(), try checkFunctionDeclaration(name: name, arguments: arguments, returns: returnType, body: body))
 //        case .functionBody(let array):
 //            <#code#>
 //        case .functionCall(let node, let optional, let array):
@@ -241,6 +245,136 @@ public class SemanticAnalyzer {
         let (_, checkedType) = try visit(node: target)
         
         return .assignment(checkedType, valueChecked)
+    }
+
+    func checkFunctionDeclaration(name: String, arguments: [Node], returns: Node?, body: Node) throws -> CheckedAst {
+        if let _ = try getSymbol(called: name, nested: false) {
+            throw OdoException.NameError(message: "Redeclaration of symbol `\(name)`")
+        }
+
+        let type = try constructFunctionType(arguments: arguments, returns: returns)
+
+        let functionSymbol = ScriptedFunctionSymbol(name, type: type.id)
+        addSymbol(functionSymbol)
+
+        let argumentsScope = createScope(called: "func_\(name)_args_scope")
+        let prevScope = currentScopeId
+        currentScopeId = argumentsScope
+
+        var checkedArgs: [CheckedAst] = []
+        for argument in arguments {
+            let (_, checked) = try visit(node: argument)
+            checkedArgs.append(checked)
+        }
+
+        let innerFunctionScope = createScope(called: "func_\(name)_scope")
+        currentScopeId = innerFunctionScope
+
+        let (_, bodyChecked) = try visit(node: body)
+
+        currentScopeId = prevScope
+
+        return .noOp
+    }
+
+    func constructFunctionType(arguments: [Node], returns: Node?) throws -> FunctionTypeSymbol {
+        var argTypes: [(TypeSymbol, Bool)] = []
+        for arg in arguments {
+            switch arg {
+                case .varDeclaration(let type, _, let initial, _):
+                    guard let type = type,
+                          let sym = try getSymbol(from: type) else {
+                        throw OdoException.TypeError(message: "Unknown type for function argument")
+                    }
+
+                    guard let typeSym = sym as? TypeSymbol else {
+                        throw OdoException.TypeError(message: "Type for function argument is not actually a type")
+                    }
+
+                    argTypes.append((typeSym, initial != nil))
+                default:
+                    throw OdoException.SemanticError(message: "Invalid function argument type")
+            }
+        }
+
+        var returnType: TypeSymbol? = nil
+        if let ret = returns {
+            guard let returnSymbol = try getSymbol(from: ret) else {
+                throw OdoException.TypeError(message: "Unknown type for function return")
+            }
+
+            guard let retType = returnSymbol as? TypeSymbol else {
+                throw OdoException.TypeError(message: "Symbol for return type is not actually a type")
+            }
+
+            returnType = retType
+        }
+        
+        let arguments = argTypes.map { ($0.0.id!, $0.1) }
+        let actualReturn = returnType?.id
+        
+        if let type = findFunctionType(args: arguments, ret: actualReturn) {
+            return type
+        } else {
+            let name = constructFunctionTypeName(arguments: arguments, returns: actualReturn)
+            let type = FunctionTypeSymbol(name: name, args: arguments, returns: actualReturn)
+
+            let prevScope = currentScopeId
+            currentScopeId = globalScope.id
+            addSymbol(type)
+            functionTypes.append(type.id)
+            currentScopeId = prevScope
+
+            return type
+        }
+    }
+
+    func constructFunctionTypeName(arguments: [(Int, Bool)], returns: Int?) -> String {
+        var result = "("
+
+        var argNames: [String] = []
+        for (arg, isOptional) in arguments {
+            let type = symbols[arg]
+            var name = type.name
+            if isOptional {
+                name += "?"
+            }
+            argNames.append(name)
+        }
+        result += argNames.joined(separator: ", ")
+
+        result += "):"
+
+        if let ret = returns {
+            let type = symbols[ret]
+            result += type.name
+        } else {
+            result += "void"
+        }
+
+        return result
+    }
+
+    func findFunctionType(args: [(Int, Bool)], ret: Int?) -> FunctionTypeSymbol? {
+        for i in functionTypes {
+            let type = symbols[i] as! FunctionTypeSymbol
+
+            guard type.args.count == args.count else { continue }
+
+            var valid = true
+            for j in 0..<args.count {
+                if type.args[j] != args[j] {
+                    valid = false
+                    break
+                }
+            }
+
+            if valid && type.returns == ret {
+                return type
+            }
+        }
+
+        return nil
     }
 
     func checkEnum(name: String, cases: [String]) throws -> CheckedAst {

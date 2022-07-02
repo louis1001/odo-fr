@@ -61,6 +61,26 @@ class EnumSymbol: Symbol {
 
 }
 
+typealias FunctionTypeArgument = (Int, Bool)
+class FunctionTypeSymbol: TypeSymbol {
+    var args: [FunctionTypeArgument]
+    var returns: Int?
+
+    init(name: String, args: [FunctionTypeArgument], returns: Int?) {
+        self.args = args
+        self.returns = returns
+        super.init(name)
+    }
+}
+
+class FunctionSymbol: Symbol {
+
+}
+
+class ScriptedFunctionSymbol: FunctionSymbol {
+
+}
+
 }
 
 extension Odo.TypeSymbol {

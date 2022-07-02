@@ -108,15 +108,11 @@ let initialCode = """
     }
     
     a::get()}#
-    
-    var something: truth = false
-    something = false
-    var a = 10
-    
-    {
-        var something2: double = 2.0 + 2.0
-        a = 10
+    func hi() {
+
     }
+
+    func hello() {}
     """
 
 //let inter = Odo.Interpreter()
