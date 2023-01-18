@@ -237,15 +237,7 @@ extension Odo {
                 // Can break?
                 return .nothing
                 
-            case .staticAccess(let n, let item):
-                var scope: SymbolTable? = currentScope
-                while scope != nil {
-                    print("--")
-                    scope?.forEach { (s, _) in
-                        print("--- \(s)")
-                    }
-                    scope = scope?.parent
-                }
+            case .staticAccess(_, _):
                 if let sym = try getSymbol(from: node) {
                     return NodeResult(tp: sym.type)
                 }
