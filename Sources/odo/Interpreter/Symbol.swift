@@ -18,14 +18,16 @@ private class WeakPtr<T: AnyObject> {
 }
 
 extension Odo {
-    public class Symbol: Hashable {
+    public class Symbol: Hashable, Identifiable {
         public static func == (lhs: Odo.Symbol, rhs: Odo.Symbol) -> Bool {
-            return lhs.qualifiedName == rhs.qualifiedName
+            lhs.id == rhs.id
         }
         
         public func hash(into hasher: inout Hasher) {
-            hasher.combine(qualifiedName)
+            hasher.combine(id)
         }
+        
+        public let id = UUID()
         
         var type: TypeSymbol?
         private(set) weak var scope: SymbolTable?
