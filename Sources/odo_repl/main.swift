@@ -62,6 +62,7 @@ func prepareStd(on interpreter: Odo.Interpreter) {
 
 // Multiline code snippet to run before repl
 let initialCode = """
+    #{
     #{module math_concepts {
         enum sign {
             positive
@@ -109,7 +110,7 @@ let initialCode = """
     a::get()
     
     #a::b::c
-    
+    }#
     """
 
 let inter = Odo.Interpreter()
