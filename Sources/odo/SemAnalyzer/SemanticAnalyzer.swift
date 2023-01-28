@@ -114,9 +114,9 @@ extension Odo {
             if !lazyScopeStack.isEmpty, let scope = currentLazyScope {
                 for (symbol, lazyCheck) in scope.checks {
                     if !symbol.hasBeenChecked {
-                        symbol.hasBeenChecked = true
                         do {
                             try lazyCheck.body(lazyCheck.parent)
+                            symbol.hasBeenChecked = true
                         } catch let err as OdoException {
                             lazyCheck.onError?()
                             lazyCheck.parent.removeSymbol(symbol)
@@ -976,7 +976,6 @@ extension Odo {
             
             if left.isNumeric && right.isNumeric { return true }
             
-            print("Comparing: \(left.qualifiedName) to \(right.qualifiedName)")
             if left == right { return true }
             
             var curr: TypeSymbol = left

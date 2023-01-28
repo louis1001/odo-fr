@@ -7,6 +7,15 @@
 import Foundation
 
 extension Odo {
+    struct LazyEvaluation {
+        weak var scope: SymbolTable!
+        var nodes: [Node]
+        init(scope: SymbolTable, nodes: [Node]) {
+            self.scope = scope
+            self.nodes = nodes
+        }
+    }
+    
     public class Interpreter {
         let parser = Parser()
         lazy var semAn: SemanticAnalyzer = SemanticAnalyzer(inter: self)
@@ -18,6 +27,8 @@ extension Odo {
         
         static let maxCallDepth: UInt = 600
         var callStack: [CallStackFrame] = []
+        
+        var lazyEvaluations = SymbolMap<LazyEvaluation>()
         
         public init() {
             globalTable = SymbolTable("globalTable")
@@ -47,31 +58,31 @@ extension Odo {
             takes args: NativeFunctionSymbol.ArgType = .nothing,
             body: @escaping ([Value], Interpreter) throws -> Value,
             validation: (([Node], SemanticAnalyzer) throws -> TypeSymbol?)? = nil) {
-            
-            let functionSymbol = NativeFunctionSymbol(name: name, takes: args, validation: validation)
-            globalTable.addSymbol(functionSymbol)
-            
-            let functionValue = NativeFunctionValue(body: body)
-            functionSymbol.body = functionValue
-        }
+                
+                let functionSymbol = NativeFunctionSymbol(name: name, takes: args, validation: validation)
+                globalTable.addSymbol(functionSymbol)
+                
+                let functionValue = NativeFunctionValue(body: body)
+                functionSymbol.body = functionValue
+            }
         
         public func addVoidFunction(
             _ name: String,
             takes args: NativeFunctionSymbol.ArgType = .nothing,
             body: @escaping ([Value], Interpreter) throws -> Void,
             validation: (([Node], SemanticAnalyzer) throws -> Void)? = nil) {
-            addFunction(
-                name,
-                takes: args,
-                body: {val, inter -> Value in
-                    try body(val, inter)
-                    return .null
-                },
-                validation: validation == nil
+                addFunction(
+                    name,
+                    takes: args,
+                    body: {val, inter -> Value in
+                        try body(val, inter)
+                        return .null
+                    },
+                    validation: validation == nil
                     ? nil
                     : { try validation!($0, $1); return nil }
-            )
-        }
+                )
+            }
         
         // TODO: Centralize all these functions,
         //       so I don't need to repeat so much code in native module.
@@ -257,7 +268,7 @@ extension Odo {
             default:
                 return .null
             }
-
+            
             if isDouble {
                 return .primitive(result)
             } else {
@@ -308,7 +319,7 @@ extension Odo {
             // If one is primitive, both are
             // SemAn guaranteed
             else if let lhs = lhs as? PrimitiveValue,
-               let rhs = rhs as? PrimitiveValue {
+                    let rhs = rhs as? PrimitiveValue {
                 
                 if lhs.isNumeric {
                     result = lhs.asDouble()! == rhs.asDouble()!
@@ -354,7 +365,7 @@ extension Odo {
         }
         
         func assignment(to lhs: Node, val: Node) throws -> Value {
-            let varSym = try currentScope.get(from: lhs) as! VarSymbol
+            let varSym = try getSymbol(from: lhs) as! VarSymbol
             var newValue = try visit(node: val)
             
             if let _ = varSym.value {
@@ -415,8 +426,8 @@ extension Odo {
         }
         
         func varDeclaration(tp: Node, name: String, initial: Node?, constant: Bool) throws -> Value {
-            var type = try currentScope.get(from: tp) as! TypeSymbol
-
+            var type = try getSymbol(from: tp) as! TypeSymbol
+            
             var initialValue: Value?
             if let initial = initial {
                 initialValue = try visit(node: initial)
@@ -470,7 +481,7 @@ extension Odo {
             for param in params {
                 switch param {
                 case .varDeclaration(let type, _, let initial, _):
-                    let tp = try currentScope.get(from: type) as! TypeSymbol
+                    let tp = try getSymbol(from: type) as! TypeSymbol
                     let isOptional = initial != nil
                     result.append((tp, isOptional))
                 default:
@@ -506,7 +517,7 @@ extension Odo {
         }
         
         func functionDeclaration(name: String, args: [Node], returns: Node?, body: Node) throws -> Value {
-            let returnType = try currentScope.get(from: returns) as? TypeSymbol
+            let returnType = try getSymbol(from: returns) as? TypeSymbol
             
             let paramTypes = try getParamTypes(args)
             
@@ -531,7 +542,7 @@ extension Odo {
         }
         
         func functionCall(expr: Node, name: String?, args: [Node]) throws -> Value {
-            let functionSymbol = try currentScope.get(from: expr)
+            let functionSymbol = try getSymbol(from: expr)
             
             switch functionSymbol {
             case let nativeSym as NativeFunctionSymbol:
@@ -608,7 +619,7 @@ extension Odo {
                 if i < initialValues.count {
                     let varName = initialValues[i].0
                     let newVar = currentScope[varName]
-
+                    
                     // Please remember to update when new kinds
                     // of value-holding symbols are added.
                     // Thank you.
@@ -626,7 +637,7 @@ extension Odo {
             let result = try visit(node: fn.body)
             
             currentScope = calleeScope
-
+            
             callStack.removeLast()
             
             return result
@@ -662,8 +673,8 @@ extension Odo {
                 (try self.visit(node: cond) as! BoolValue)
                     .value
             }
-
-
+            
+            
             while try condResult() {
                 try visit(node: body)
                 
@@ -694,7 +705,7 @@ extension Odo {
             
             if let second = second {
                 lowerBound = Int(first.asDouble()!)
-
+                
                 let second = (try visit(node: second) as! PrimitiveValue)
                 upperBound = Int(second.asDouble()!)
             } else {
@@ -713,7 +724,7 @@ extension Odo {
                     initial: .noOp,
                     constant: true
                 )
-
+                
                 let iterId = currentScope[id!, false]! as! VarSymbol
                 iterValue = IntValue(value: 0)
                 iterId.value = iterValue
@@ -747,7 +758,7 @@ extension Odo {
         }
         
         func staticAccess(node: Node, name: String) throws -> Value {
-            let symbol = try currentScope.get(from: node)
+            let symbol = try getSymbol(from: node)
             if let moduleSym = symbol as? ModuleSymbol {
                 let moduleValue = moduleSym.value!
                 
@@ -766,7 +777,7 @@ extension Odo {
                 }
             } else if let enumSym = symbol as? EnumSymbol {
                 let enumValue = enumSym.value!
-
+                
                 return (enumValue.scope[name] as! EnumCaseSymbol).value!
             } else {
                 return .null
@@ -779,16 +790,9 @@ extension Odo {
             
             let moduleValue = ModuleValue(scope: moduleScope)
             
-            let temp = currentScope
-            currentScope = moduleValue.scope
-            
-            for statement in body {
-                try visit(node: statement)
+            if let inTable = currentScope.addSymbol(ModuleSymbol(name: name, value: moduleValue)) {
+                lazyEvaluations[inTable] = LazyEvaluation(scope: moduleScope, nodes: body)
             }
-            
-            currentScope = temp
-            
-            currentScope.addSymbol(ModuleSymbol(name: name, value: moduleValue))
             
             return .null
         }
@@ -835,6 +839,85 @@ extension Odo {
             }
             
             currentScope = globalTable
+            return result
+        }
+        
+        func evaluateIfLazily(symbol: Symbol?) throws {
+            guard let symbol else { return }
+            
+            guard let lazyEvaluation = lazyEvaluations[symbol] else { return }
+            
+            lazyEvaluations.remove(symbol)
+            
+            let tempScope = currentScope
+            currentScope = lazyEvaluation.scope
+            
+            for node in lazyEvaluation.nodes {
+                try visit(node: node)
+            }
+            
+            currentScope = tempScope
+        }
+        
+        func getSymbol(from node: Node?, andParents: Bool = true) throws -> Symbol? {
+            guard let node = node else { return nil }
+            
+            let result: Symbol?
+            
+            switch node {
+            case .variable(let name):
+                result = currentScope[name]
+            case .functionType(let args, let ret):
+                let actualArgs = try args.map { argDef -> (TypeSymbol, Bool) in
+                    let (type, isOptional) = argDef
+                    guard let actualType = try getSymbol(from: type) as? TypeSymbol else {
+                        throw OdoException.NameError(message: "Invalid type in function type arguments.")
+                    }
+                    
+                    return (actualType, isOptional)
+                }
+                
+                let returns: TypeSymbol?
+                if let ret = ret {
+                    guard let found = try getSymbol(from: ret) as? TypeSymbol else {
+                        throw OdoException.NameError(message: "Invalid return type in function type arguments.")
+                    }
+                    
+                    returns = found
+                } else {
+                    returns = nil
+                }
+                
+                let funcName = FunctionTypeSymbol.constructFunctionName(ret: returns, params: actualArgs)
+                if let functionType = currentScope[funcName] as? ScriptedFunctionTypeSymbol {
+                    result = functionType
+                } else {
+                    let functionType = ScriptedFunctionTypeSymbol(funcName, ret: returns, args: actualArgs)
+                    result = currentScope.topScope.addSymbol(functionType)
+                }
+            case .staticAccess(let expr, let name):
+                guard let leftHand = try getSymbol(from: expr) else {
+                    throw OdoException.ValueError(message: "Invalid static access on unknown symbol")
+                }
+                
+                switch leftHand {
+                case let asModule as ModuleSymbol:
+                    let moduleContext = asModule.value
+                    result = moduleContext?.scope[name]
+                case let asEnum as EnumSymbol:
+                    let enumContext = asEnum.value
+                    result = enumContext?.scope[name]
+                default:
+                    // Innaccessible, based on semantic analysis
+                    result = nil
+                }
+                
+            default:
+                result = nil
+            }
+            
+            try evaluateIfLazily(symbol: result)
+            
             return result
         }
     }

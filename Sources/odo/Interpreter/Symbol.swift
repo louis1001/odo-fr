@@ -312,7 +312,7 @@ extension Odo {
         }
         private(set) var qualifiedScopeName: String = ""
         
-        private var topScope: SymbolTable {
+        var topScope: SymbolTable {
             parent?.topScope ?? self
         }
         
@@ -351,65 +351,6 @@ extension Odo {
             
             if inParents { return parent?[name] }
             
-            return nil
-        }
-        
-        func get(from node: Node?, andParents: Bool = true) throws -> Symbol? {
-            guard let node = node else { return nil }
-            switch node {
-            case .variable(let name):
-                if let found = self[name] {
-                    return found
-                }
-            case .functionType(let args, let ret):
-                let actualArgs = try args.map { argDef -> (TypeSymbol, Bool) in
-                    let (type, isOptional) = argDef
-                    guard let actualType = try self.get(from: type) as? TypeSymbol else {
-                        throw OdoException.NameError(message: "Invalid type in function type arguments.")
-                    }
-                    
-                    return (actualType, isOptional)
-                }
-                
-                let returns: TypeSymbol?
-                if let ret = ret {
-                    guard let found = try get(from: ret) as? TypeSymbol else {
-                        throw OdoException.NameError(message: "Invalid return type in function type arguments.")
-                    }
-                    
-                    returns = found
-                } else {
-                    returns = nil
-                }
-                
-                let funcName = FunctionTypeSymbol.constructFunctionName(ret: returns, params: actualArgs)
-                if let functionType = self[funcName] as? ScriptedFunctionTypeSymbol {
-                    return functionType
-                } else {
-                    let functionType = ScriptedFunctionTypeSymbol(funcName, ret: returns, args: actualArgs)
-                    return topScope.addSymbol(functionType)
-                }
-            case .staticAccess(let expr, let name):
-                guard let leftHand = try get(from: expr) else {
-                    throw OdoException.ValueError(message: "Invalid static access on unknown symbol")
-                }
-                
-                switch leftHand {
-                case let asModule as ModuleSymbol:
-                    let moduleContext = asModule.value
-                    return moduleContext?.scope[name]
-                case let asEnum as EnumSymbol:
-                    let enumContext = asEnum.value
-                    return enumContext?.scope[name]
-                default:
-                    // Innaccessible, based on semantic analysis
-                    break
-                }
-                
-            default:
-                break
-            }
-
             return nil
         }
         
