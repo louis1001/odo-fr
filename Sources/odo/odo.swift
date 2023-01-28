@@ -6,5 +6,5 @@
 //
 
 public enum Odo {
-    public static let versionNumber = "v0.5"
+    public static let versionNumber = "v0.5.1"
 }
