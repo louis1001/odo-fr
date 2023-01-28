@@ -14,7 +14,7 @@ func execute(file: String, interactive: Bool) throws {
     
     // Execute file
     let interpreter = Odo.Interpreter()
-    prepareStd(on: interpreter)
+    interpreter.prepareStd()
     
     let _ = try interpreter.interpret(code: contents)
     

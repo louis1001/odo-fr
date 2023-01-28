@@ -20,7 +20,7 @@ func repl(interpreter: Odo.Interpreter = .init()) throws {
     var running = true
     var exitCode: Int32?
     
-    prepareStd(on: interpreter)
+    interpreter.prepareStd()
     
     do {
         let _ = try interpreter.repl(code: initialCode)
