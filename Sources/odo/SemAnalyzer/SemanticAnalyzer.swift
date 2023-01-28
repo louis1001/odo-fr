@@ -743,6 +743,7 @@ extension Odo {
                         )
                     }
                 case .whatever:
+                    
                     break
                 case .some(let x):
                     guard args.count == x else {
@@ -758,8 +759,11 @@ extension Odo {
                     }
                 }
                 
-                for arg in args {
-                    try visit(node: arg)
+                for (i, arg) in args.enumerated() {
+                    let values = try visit(node: arg)
+                    if values.tp == nil {
+                        throw OdoException.ValueError(message: "Function call argument \(i) does not provide a value")
+                    }
                 }
                 
                 let result = try native.semanticTest(args, self)

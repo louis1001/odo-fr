@@ -9,7 +9,7 @@ import odolib
 import LineNoise
 import Foundation
 
-func repl(interpreter: Odo.Interpreter = .init()) throws {
+func repl(interpreter: Odo.Interpreter = .init()) throws -> Never {
     var running = true
     var exitCode: Int32?
     
@@ -56,6 +56,8 @@ func repl(interpreter: Odo.Interpreter = .init()) throws {
 
     if let code = exitCode {
         exit(code)
+    } else {
+        exit(0)
     }
 }
 
