@@ -28,17 +28,7 @@ struct OdoEntry: ParsableCommand {
         if version || longVersion {
             printVersion(long: longVersion)
         } else if let file {
-            // Read code
-            let contents = try String(contentsOfFile: file)
-            
-            // Execute file
-            let interpreter = Odo.Interpreter()
-            let _ = try interpreter.interpret(code: contents)
-            
-            if interactive {
-                // repl with the file's contents on scope
-                try repl(interpreter: interpreter)
-            }
+            try execute(file: file, interactive: interactive)
         } else {
             try repl()
         }
