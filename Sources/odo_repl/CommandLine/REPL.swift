@@ -77,35 +77,36 @@ module math_concepts {
             return sign::zero
         }
     }
+
+    func describe(n: int) {
+        const the_sign = get_sign(n)
+        if the_sign == sign::zero {
+            io::writeln(n, " is ", the_sign)
+        } else {
+            io::writeln(n, " is a ", get_sign(n), " number.")
+        }
+    }
 }
 
 const x = 10
 const y = -10
 const z = x + y
 
-func describe(n: int) {
-    const the_sign = math_concepts::get_sign(n)
-    if the_sign == math_concepts::sign::zero {
-        io::writeln(n, " is ", the_sign)
-    } else {
-        io::writeln(n, " is a ", math_concepts::get_sign(n), " number.")
-    }
-}
+math_concepts::describe(x)
+math_concepts::describe(z)
+math_concepts::describe(y)
 
-describe(x)
-describe(z)
-describe(y)
+io::writeln("\n\nnested access:\n")
+
 module a {
     enum b {
         c
     }
 
     func nested_access() {
-        io::writeln(b::c)
+        io::writeln("b::c -> ", b::c)
     }
 }
 
 a::nested_access()
-
-#a::b::c
 """

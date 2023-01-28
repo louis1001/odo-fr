@@ -7,15 +7,6 @@
 import Foundation
 
 extension Odo {
-    struct LazyEvaluation {
-        weak var scope: SymbolTable!
-        var nodes: [Node]
-        init(scope: SymbolTable, nodes: [Node]) {
-            self.scope = scope
-            self.nodes = nodes
-        }
-    }
-    
     public class Interpreter {
         let parser = Parser()
         lazy var semAn: SemanticAnalyzer = SemanticAnalyzer(inter: self)
@@ -816,32 +807,7 @@ extension Odo {
             return .null
         }
         
-        public func interpret(code: String) throws -> Value {
-            try parser.setText(to: code)
-            let root = try parser.program()
-            
-            try semAn.analyze(root: root)
-            
-            return try visit(node: root)
-        }
-        
-        public func repl(code: String) throws -> Value {
-            try parser.setText(to: code)
-            let content = try parser.programContent()
-            
-            currentScope = replScope
-            
-            var result: Value = .null
-            
-            for statement in content {
-                try semAn.fromRepl(statement: statement)
-                result = try visit(node: statement)
-            }
-            
-            currentScope = globalTable
-            return result
-        }
-        
+        // Scope management
         func evaluateIfLazily(symbol: Symbol?) throws {
             guard let symbol else { return }
             
@@ -919,6 +885,43 @@ extension Odo {
             try evaluateIfLazily(symbol: result)
             
             return result
+        }
+        
+        public func interpret(code: String) throws -> Value {
+            try parser.setText(to: code)
+            let root = try parser.program()
+            
+            try semAn.analyze(root: root)
+            
+            return try visit(node: root)
+        }
+        
+        public func repl(code: String) throws -> Value {
+            try parser.setText(to: code)
+            let content = try parser.programContent()
+            
+            currentScope = replScope
+            
+            var result: Value = .null
+            
+            for statement in content {
+                try semAn.fromRepl(statement: statement)
+                result = try visit(node: statement)
+            }
+            
+            currentScope = globalTable
+            return result
+        }
+    }
+}
+
+extension Odo.Interpreter {
+    struct LazyEvaluation {
+        weak var scope: Odo.SymbolTable!
+        var nodes: [Odo.Node]
+        init(scope: Odo.SymbolTable, nodes: [Odo.Node]) {
+            self.scope = scope
+            self.nodes = nodes
         }
     }
 }
