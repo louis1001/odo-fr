@@ -52,7 +52,7 @@ extension Odo {
         func ignoreNl() {
             while currentToken.type == .newLine {
                 // Doesn't throws. Only eats if certain
-                try! eat(tp: .newLine)
+                try? eat(tp: .newLine)
             }
         }
         
@@ -291,7 +291,7 @@ extension Odo {
             var id: String?
             if currentToken.type == .identifier {
                 id = currentToken.lexeme
-                try! eat(tp: .identifier)
+                try eat(tp: .identifier)
             }
             
             ignoreNl()
@@ -334,15 +334,7 @@ extension Odo {
 
             try eat(tp: .parOpen)
             ignoreNl()
-            var declarations = [Node]()
-            while currentToken.type == .identifier {
-                declarations.append(try declaration())
-                ignoreNl()
-                if currentToken.type != .parClose {
-                    try eat(tp: .comma)
-                    ignoreNl()
-                }
-            }
+            let declarations = try functionParameters()
             try eat(tp: .parClose)
             ignoreNl()
             
@@ -364,6 +356,59 @@ extension Odo {
         func functionBody() throws -> Node {
             let content = try statementList()
             return .functionBody(content)
+        }
+        
+        func functionExpression() throws -> Node {
+            ignoreNl()
+            let args: [Node]
+            if currentToken.type == .parOpen {
+                try eat(tp: .parOpen)
+                ignoreNl()
+                args = try functionParameters()
+                ignoreNl()
+                try eat(tp: .parClose)
+                ignoreNl()
+            } else {
+                args = []
+            }
+            
+            let returnType: Node?
+            if currentToken.type == .colon {
+                try eat(tp: .colon)
+                ignoreNl()
+                returnType = try getFullType()
+            } else {
+                returnType = nil
+            }
+            
+            let body: Node
+            // TODO: Handle function expressions with full bodies
+//            if currentToken.type == .curlOpen {
+//                try eat(tp: .curlOpen)
+//                ignoreNl()
+//                body = try functionBody()
+//                try eat(tp: .curlClose)
+//            } else {
+                try eat(tp: .arrow)
+                ignoreNl()
+                body = try ternaryOp()
+//            }
+            
+            return .functionExpression(args, returnType, body)
+        }
+        
+        func functionParameters() throws -> [Node] {
+            var declarations = [Node]()
+            while currentToken.type == .identifier {
+                declarations.append(try declaration())
+                ignoreNl()
+                if currentToken.type != .parClose {
+                    try eat(tp: .comma)
+                    ignoreNl()
+                }
+            }
+            
+            return declarations
         }
         
         func callArgs() throws -> [Node] {
@@ -510,7 +555,7 @@ extension Odo {
                     currentToken.type == .greaterThan ||
                     currentToken.type == .greaterOrEqualTo {
                 let op = currentToken
-                try! eat(tp: op.type)
+                try eat(tp: op.type)
                 
                 ignoreNl()
                 result = .relationalOp(result, op, try expression())
@@ -623,6 +668,9 @@ extension Odo {
                 let op = currentToken
                 try eat(tp: currentToken.type)
                 return .unaryOp(op, try postfix())
+            case .func:
+                try eat(tp: .func)
+                return try functionExpression()
             default:
                 break
             }

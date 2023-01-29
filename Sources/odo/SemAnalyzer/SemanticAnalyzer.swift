@@ -207,6 +207,8 @@ extension Odo {
                 
             case .functionDeclaration(let name, let args, let returnType, let body):
                 return try functionDeclaration(name: name, args: args, returns: returnType, body: body)
+            case .functionExpression(let args, let returnType, let body):
+                return try functionExpression(args: args, returns: returnType, body: body)
             case .functionBody(let statements):
                 return try functionBody(body: statements)
             case .functionCall(let expr, let name, let args):
@@ -698,6 +700,75 @@ extension Odo {
             currentScope = temp
             
             return .nothing
+        }
+        
+        func functionExpression(args: [Node], returns: Node?, body: Node) throws -> NodeResult {
+            var returnType: TypeSymbol? = nil
+            if let returns = returns {
+                guard let typeSymbol = try getSymbol(from: returns) as? TypeSymbol else {
+                    throw OdoException.TypeError(message: "Type `\(returns)` is not a valid type.")
+                }
+
+                returnType = typeSymbol
+            }
+            
+            let paramTypes = try getParameterTypes(args)
+            
+            let placeholderScope = SymbolTable("func_placeholder", parent: currentScope)
+            
+            let temp = currentScope
+            currentScope = placeholderScope
+            
+            // TODO: Handle parameters
+            for par in args {
+                try visit(node: par)
+                let name: String
+                switch par {
+                case .varDeclaration(_, let varName, _, _):
+                    name = varName
+                default:
+                    name = ""
+                }
+                
+                currentScope[name]?.isInitialized = true
+            }
+            
+            if case .functionBody(_) = body {
+                // TODO: Evaluate body later?
+                throw OdoException.SemanticError(message: "Function expressions should have one expression as body")
+            } else {
+                let functionResult = try visit(node: body)
+                
+                returnType = functionResult.tp
+            }
+            
+            currentScope = temp
+            
+            let typeName = FunctionTypeSymbol.constructFunctionName(ret: returnType, params: paramTypes)
+            let functionType: ScriptedFunctionTypeSymbol
+            
+            let funcScope: SymbolTable
+            
+            if let inScope = currentScope[typeName] {
+                // Semantic context handling
+                functionType = inScope as! ScriptedFunctionTypeSymbol
+                
+                if let existingContext = semanticContexts[functionType] {
+                    funcScope = existingContext.copy()
+                } else {
+                    funcScope = addFunctionSemanticContext(for: functionType, name: typeName, params: paramTypes).copy()
+                }
+            } else {
+                functionType = ScriptedFunctionTypeSymbol(typeName, ret: returnType, args: paramTypes)
+                
+                globalScope.addSymbol(functionType)
+                funcScope = addFunctionSemanticContext(for: functionType, name: typeName, params: paramTypes).copy()
+            }
+            
+            funcScope.parent = currentScope
+            placeholderScope.moveAllTo(funcScope)
+            
+            return NodeResult(tp: functionType)
         }
         
         func functionCall(expr: Node, name: String?, args: [Node]) throws -> NodeResult {

@@ -35,6 +35,7 @@ extension Odo {
         case assignment(Node, Node)
         
         case functionDeclaration(String, [Node], Node?, Node)
+        case functionExpression([Node], Node?, Node)
         case functionBody([Node])
         case functionCall(Node, String?, [Node])
         

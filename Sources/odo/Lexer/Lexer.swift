@@ -250,7 +250,13 @@ extension Odo {
                 return Token(type: .comma)
             case "~":
                 advance()
-                return Token(type: .tilde)
+                
+                if currentChar == ">" {
+                    advance()
+                    return Token(type: .arrow)
+                } else {
+                    return Token(type: .tilde)
+                }
             case "=":
                 advance()
                 

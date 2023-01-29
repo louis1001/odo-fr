@@ -65,6 +65,7 @@ extension Odo {
             case parClose
             case curlOpen
             case curlClose
+            case arrow
             
             case assignment
             

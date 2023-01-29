@@ -289,7 +289,7 @@ extension Odo {
         private var children: [WeakPtr<SymbolTable>] = []
         
         let name: String
-        var parent: SymbolTable? {
+        weak var parent: SymbolTable? {
             willSet {
                 parent?.children.removeAll { $0.value === self || $0.isNil }
                 newValue?.children.append(WeakPtr(self))
@@ -411,6 +411,14 @@ extension Odo {
         func forEach(body: (String, Symbol) throws -> Void) rethrows {
             for (name, sym) in symbols {
                 try body(name, sym)
+            }
+        }
+        
+        func moveAllTo(_ targetTable: SymbolTable) {
+            let copyOfSymbols = symbols
+            for (_, symbol) in copyOfSymbols {
+                targetTable.addSymbol(symbol)
+                self.removeSymbol(symbol)
             }
         }
     }

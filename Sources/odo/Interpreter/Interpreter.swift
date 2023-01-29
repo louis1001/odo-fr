@@ -173,6 +173,8 @@ extension Odo {
                 return try functionBody(body: args)
             case .functionDeclaration(let name, let args, let ret, let body):
                 return try functionDeclaration(name: name, args: args, returns: ret, body: body)
+            case .functionExpression(let args, let ret, let body):
+                return try functionExpression(args: args, returns: ret, body: body)
             case .functionCall(let expr, let name, let args):
                 return try functionCall(expr: expr, name: name, args: args)
             case .returnStatement(let expr):
@@ -532,6 +534,29 @@ extension Odo {
             return .null
         }
         
+        func functionExpression(args: [Node], returns: Node?, body: Node) throws -> Value {
+            let returnType = try getSymbol(from: returns) as? TypeSymbol
+            
+            let paramTypes = try getParamTypes(args)
+            
+            let typeName = FunctionTypeSymbol.constructFunctionName(ret: returnType, params: paramTypes)
+            
+            let typeOfFunction: ScriptedFunctionTypeSymbol
+            
+            if let inScope = globalTable[typeName] {
+                typeOfFunction = inScope as! ScriptedFunctionTypeSymbol
+            } else {
+                typeOfFunction = ScriptedFunctionTypeSymbol(typeName, ret: returnType, args: paramTypes)
+                globalTable.addSymbol(
+                    typeOfFunction
+                )
+            }
+            
+            let funcValue = ScriptedFunctionValue(type: typeOfFunction, parameters: args, body: body, parentScope: currentScope)
+            
+            return funcValue
+        }
+        
         func functionCall(expr: Node, name: String?, args: [Node]) throws -> Value {
             let functionSymbol = try getSymbol(from: expr)
             
@@ -557,6 +582,14 @@ extension Odo {
             case let scripted as ScriptedFunctionSymbol:
                 return try callScriptedFunction(scripted.value!, args: args)
             default:
+                let functionType = functionSymbol?.type as? ScriptedFunctionTypeSymbol
+                if functionType != nil,
+                   let functionSymbol = functionSymbol as? VarSymbol,
+                   let functionValue = functionSymbol.value as? ScriptedFunctionValue
+                {
+                    return try callScriptedFunction(functionValue, args: args)
+                }
+                
                 fatalError("Oh no")
             }
         }

@@ -111,4 +111,10 @@ module a {
 }
 
 a::nested_access()
+
+io::writeln("\n\nfunction expression:\n")
+var double_number = func(n: double) ~> n * 2
+var relu = func(n: int) ~> n < 0 ? 0 : n
+
+io::writeln("expression: ", relu(20))
 """
