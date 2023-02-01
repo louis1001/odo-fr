@@ -815,6 +815,8 @@ extension Odo {
             let moduleValue = ModuleValue(scope: moduleScope)
             
             if let inTable = currentScope.addSymbol(ModuleSymbol(name: name, value: moduleValue)) {
+                moduleScope.owner = inTable // The value is the actual owner,
+                                            // but a value can't qualify a name.
                 lazyEvaluations[inTable] = LazyEvaluation(scope: moduleScope, nodes: body)
             }
             

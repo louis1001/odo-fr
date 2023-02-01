@@ -33,7 +33,7 @@ extension Odo {
         private(set) weak var scope: SymbolTable?
         
         public fileprivate(set) var name: String
-        var qualifiedName: String
+        public private(set) var qualifiedName: String
         
         var isType: Bool { false }
         
