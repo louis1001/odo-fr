@@ -1,0 +1,18 @@
+io::writeln("nested access:\n")
+
+module a {
+    enum b {
+        c
+    }
+
+    func nested_access(): b {
+        # This accesses a type defined in this module's scope (a local type)
+        # and the outside reads it as a nested type
+        io::writeln("b::c -> ", b::c)
+        
+        return b::c
+    }
+}
+
+const value = a::nested_access()
+io::writeln("The type of nested_access is `", typeof(value), "`")
