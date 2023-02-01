@@ -324,8 +324,9 @@ extension Odo {
         }
         
         func block(body: [Node]) throws -> NodeResult {
+            let blockScope = SymbolTable("block_scope", parent: currentScope)
             let tempScope = currentScope
-            currentScope = SymbolTable("block_scope", parent: currentScope)
+            currentScope = blockScope
             pushLazyScope()
             
             for statement in body {

@@ -216,8 +216,9 @@ extension Odo {
         }
         
         func block(body: [Node]) throws -> Value {
+            let blockScope = SymbolTable("block_scope", parent: currentScope)
             let tempScope = currentScope
-            currentScope = SymbolTable("block_scope", parent: currentScope)
+            currentScope = blockScope
             var result: Value = .null
             for statement in body {
                 result = try visit(node: statement)
