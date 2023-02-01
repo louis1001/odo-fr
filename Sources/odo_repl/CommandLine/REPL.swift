@@ -113,8 +113,28 @@ module a {
 a::nested_access()
 
 io::writeln("\n\nfunction expression:\n")
+
+# variable with single-expression function
 var double_number = func(n: double) ~> n * 2
-var relu = func(n: int) ~> n < 0 ? 0 : n
+
+# constant with single-expression, ternary operator function
+const relu = func(n: int) ~> n < 0 ? 0 : n
+
+# constant with full-body function that returns
+const simple_add = func(n: int) {
+    const value = 20
+    return n + value
+}
+
+# constant with full-body void function
+const show_add = func(n: int) {
+    const result = simple_add(n)
+    io::writeln(n, " + ", 20, " = ", result)
+}
 
 io::writeln("expression: ", relu(20))
+show_add(10)
+
+# FIXME: Should be -> <int:int>
+io::writeln("\ntypeof simple_add: ", typeof(simple_add))
 """

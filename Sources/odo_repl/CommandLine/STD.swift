@@ -16,7 +16,7 @@ extension Odo.Interpreter {
         self.addFunction("typeof", takes: .some(1)) { args, _ in
             let first = args.first!.type
             return .literal(first?.name ?? "<no type>")
-        }
+        } validation: { _, _ in return .textType }
         
         // MARK: Math
         let mathModule = self.addModule("math")

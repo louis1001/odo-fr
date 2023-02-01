@@ -719,7 +719,6 @@ extension Odo {
             let temp = currentScope
             currentScope = placeholderScope
             
-            // TODO: Handle parameters
             for par in args {
                 try visit(node: par)
                 let name: String
@@ -734,8 +733,13 @@ extension Odo {
             }
             
             if case .functionBody(_) = body {
-                // TODO: Evaluate body later?
-                throw OdoException.SemanticError(message: "Function expressions should have one expression as body")
+                self.pushFunctionDetails(ret: .optionalReturnType)
+                try self.visit(node: body)
+                
+                let result = self.popFunctionDetails()
+                if let type = result?.expectedReturnType, type != .optionalReturnType {
+                    returnType = type
+                }
             } else {
                 let functionResult = try visit(node: body)
                 
@@ -855,7 +859,10 @@ extension Odo {
                 }
                 let value = try visit(node: expr)
                 if let returningType = value.tp {
-                    if !counts(type: returningType, as: expected) {
+                    if expected == .optionalReturnType {
+                        let lastIndex = functionDetailsStack.count-1
+                        functionDetailsStack[lastIndex].expectedReturnType = returningType
+                    } else if !counts(type: returningType, as: expected) {
                         throw OdoException.TypeError(
                             message: "Returning value with invalid type. Expected `\(currentFunctionDetails.expectedReturnType?.qualifiedName ?? "")` but recieved `\(returningType.qualifiedName)`"
                         )

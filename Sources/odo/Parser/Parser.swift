@@ -383,16 +383,16 @@ extension Odo {
             
             let body: Node
             // TODO: Handle function expressions with full bodies
-//            if currentToken.type == .curlOpen {
-//                try eat(tp: .curlOpen)
-//                ignoreNl()
-//                body = try functionBody()
-//                try eat(tp: .curlClose)
-//            } else {
+            if currentToken.type == .curlOpen {
+                try eat(tp: .curlOpen)
+                ignoreNl()
+                body = try functionBody()
+                try eat(tp: .curlClose)
+            } else {
                 try eat(tp: .arrow)
                 ignoreNl()
                 body = try ternaryOp()
-//            }
+            }
             
             return .functionExpression(args, returnType, body)
         }

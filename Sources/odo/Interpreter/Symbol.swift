@@ -32,7 +32,7 @@ extension Odo {
         var type: TypeSymbol?
         private(set) weak var scope: SymbolTable?
         
-        public let name: String
+        public fileprivate(set) var name: String
         var qualifiedName: String
         
         var isType: Bool { false }
@@ -91,6 +91,8 @@ extension Odo {
             val.isNumeric = true
             return val
         }()
+        
+        internal static let optionalReturnType = PrimitiveTypeSymbol(name: "$optionalReturn")
     }
 
     public class TypeSymbol: Symbol {
@@ -113,7 +115,7 @@ extension Odo {
     
     class FunctionTypeSymbol: TypeSymbol {
         typealias ArgumentDefinition = (TypeSymbol, Bool)
-        class func constructFunctionName(ret: TypeSymbol?, params: [(TypeSymbol, Bool)]) -> String {
+        class func constructFunctionName(ret: TypeSymbol?, params: [(TypeSymbol, Bool)], pending: Bool = false) -> String {
             var result = "<"
             
             for (i, paramDef) in params.enumerated() {
@@ -129,6 +131,8 @@ extension Odo {
 
             if let returns = ret {
                 result += " " + returns.name
+            } else if pending {
+                result += "?"
             }
             
             result += ">"
@@ -147,16 +151,23 @@ extension Odo {
     
     class ScriptedFunctionTypeSymbol: FunctionTypeSymbol {
         var returnType: TypeSymbol?
+        var needsReturnType: Bool
         var argTypes: [ArgumentDefinition]
         
-        convenience init(ret: TypeSymbol?, args: [ArgumentDefinition]) {
-            self.init(Self.constructFunctionName(ret: ret, params: args), ret: ret, args: args)
+        convenience init(ret: TypeSymbol?, args: [ArgumentDefinition], needsReturnType: Bool = false) {
+            self.init(Self.constructFunctionName(ret: ret, params: args), ret: ret, args: args, needsReturnType: needsReturnType)
         }
         
-        init(_ name: String, ret: TypeSymbol?, args: [ArgumentDefinition]) {
+        init(_ name: String, ret: TypeSymbol?, args: [ArgumentDefinition], needsReturnType: Bool = false) {
             argTypes = args
             returnType = ret
+            self.needsReturnType = needsReturnType
             super.init(name: name, type: nil)
+        }
+        
+        func updateReturn(_ type: TypeSymbol) {
+            returnType = type
+            name = Self.constructFunctionName(ret: returnType, params: argTypes)
         }
     }
     
